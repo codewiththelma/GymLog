@@ -246,7 +246,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .split-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .split-day-card {
@@ -255,7 +255,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   padding: 0.9rem;
-  min-width: 180px;
+  min-width: 170px;
   transition: background 0.25s ease, border 0.25s ease;
 }
 
@@ -391,7 +391,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .history-delete-icon {
   position: absolute;
-  top: 12px;
+  bottom: 12px;
   right: 12px;
   background: none;
   border: none;
@@ -718,9 +718,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   object-fit: contain;
   transition: filter 0.25s ease;
 }
-/* ==========================================
-   DESKTOP SIDEBAR NAVIGATION (≥ 900px)
-   ========================================== */
+
+@media (max-width: 450px) {
+  .bottom-nav {
+    padding-bottom: 2.5rem;
+    padding-top: 1rem;
+  }
+}
 @media (min-width: 900px) {
 
   /* Move bottom nav to left sidebar */
