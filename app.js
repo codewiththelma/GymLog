@@ -1,0 +1,787 @@
+/*******************************************************
+ *  FIREBASE (MODULAR SDK)
+ *******************************************************/
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  serverTimestamp,
+  query,
+  orderBy,
+  onSnapshot,
+  arrayUnion
+} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+
+/*******************************************************
+ *  FIREBASE INIT
+ *******************************************************/
+const firebaseConfig = {
+  apiKey: "AIzaSyAgKoN-aP4hk4AzeTOkKnGy-QwBMVO5RDw",
+  authDomain: "gymtracker-6ef97.firebaseapp.com",
+  projectId: "gymtracker-6ef97",
+  storageBucket: "gymtracker-6ef97.firebasestorage.app",
+  messagingSenderId: "746810944434",
+  appId: "1:746810944434:web:7f264137f0d1aeeb7092ab"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+/*******************************************************
+ *  LOCAL UI STATE (NOT SAVED)
+ *******************************************************/
+const state = {
+  splitDays: [],
+  workouts: [],
+};
+
+/*******************************************************
+ *  DOM SELECTORS
+ *******************************************************/
+const navBtns = document.querySelectorAll(".nav-btn");
+const views = document.querySelectorAll(".view");
+
+const addDayForm = document.getElementById("addDayForm");
+const addExerciseForm = document.getElementById("addExerciseForm");
+const exerciseDaySelect = document.getElementById("exerciseDaySelect");
+const exerciseNameInput = document.getElementById("exerciseName");
+const splitList = document.getElementById("splitList");
+const homeSplitList = document.getElementById("homeSplitList");
+
+const workoutForm = document.getElementById("workoutForm");
+const workoutDaySelect = document.getElementById("workoutDaySelect");
+const workoutDateInput = document.getElementById("workoutDate");
+const workoutExercisesContainer = document.getElementById("workoutExercisesContainer");
+const addWorkoutExerciseBtn = document.getElementById("addWorkoutExerciseBtn");
+const totalVolumeSpan = document.getElementById("totalVolume");
+
+const historyTableBody = document.getElementById("historyTableBody");
+const historyEditBtn = document.getElementById("historyEditBtn");
+
+let historyDeleteMode = false;
+
+const streakSummary = document.getElementById("streakSummary");
+const streakCalendar = document.getElementById("streakCalendar");
+
+const weeklyChartCanvas = document.getElementById("weeklyChart");
+const weeklyTrendToggleBtns = document.querySelectorAll(".home-toggle-btn");
+let weeklyChartInstance = null;
+let weeklyTrendMode = "count";
+
+const homeWeekCountEl = document.getElementById("homeWeekCount");
+const homeTotalWorkoutsEl = document.getElementById("homeTotalWorkouts");
+const homeBadgeEl = document.getElementById("homeBadge");
+const homeBadgeTextEl = document.getElementById("homeBadgeText");
+const homeStreakFill = document.getElementById("homeStreakFill");
+const homeWeekdayDots = document.querySelectorAll(".home-day-dot");
+
+const home7DayCanvas = document.getElementById("home7DayChart");
+let home7DayChartInstance = null;
+
+const themeToggle = document.getElementById("themeToggle");
+
+const editModal = document.getElementById("editModal");
+const editDayName = document.getElementById("editDayName");
+const editExerciseList = document.getElementById("editExerciseList");
+const saveSplitChanges = document.getElementById("saveSplitChanges");
+const cancelEditSplit = document.getElementById("cancelEditSplit");
+const logo = document.getElementById("brandLogo");
+let editingDayId = null;
+
+/*******************************************************
+ * DARK MODE
+ *******************************************************/
+function applyTheme(theme) {
+  if (theme === "dark") {
+    document.body.classList.add("dark");
+    themeToggle.innerHTML = `<i class="fa-solid fa-sun"></i>`;
+  } else {
+    document.body.classList.remove("dark");
+    themeToggle.innerHTML = `<i class="fa-solid fa-moon"></i>`;
+  }
+
+  if (theme === "dark") {
+  logo.src = "images/logodark.png";
+  } else {
+    logo.src = "images/logo.png";
+  }
+}
+
+applyTheme(localStorage.getItem("theme") || "light");
+
+themeToggle.addEventListener("click", () => {
+  const mode = document.body.classList.contains("dark") ? "light" : "dark";
+  localStorage.setItem("theme", mode);
+  applyTheme(mode);
+});
+
+
+/*******************************************************
+ * NAVIGATION
+ *******************************************************/
+navBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    navBtns.forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    views.forEach((v) => {
+      v.classList.toggle("active", v.id === btn.dataset.view);
+    });
+  });
+});
+
+function formatDate(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-GB", {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  });
+}
+
+function updateDaySelects() {
+  const selects = [exerciseDaySelect, workoutDaySelect];
+
+  selects.forEach((sel) => {
+    const old = sel.value;
+    sel.innerHTML = `<option value="">Select...</option>`;
+    state.splitDays.forEach((d) => {
+      sel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+    });
+    sel.value = old;
+  });
+}
+
+/*******************************************************
+ * FIREBASE REAL-TIME SYNC
+ *******************************************************/
+function initData() {
+  /** Split days */
+  const splitQuery = query(collection(db, "splitDays"), orderBy("createdAt"));
+  onSnapshot(splitQuery, (snapshot) => {
+    state.splitDays = snapshot.docs.map((d) => ({
+      id: d.id,
+      ...d.data()
+    }));
+    renderSplit();
+    renderHomeSplitPreview();
+    updateDaySelects();
+  });
+
+  /** Workouts */
+  const workoutQuery = query(collection(db, "workouts"), orderBy("date", "desc"));
+  onSnapshot(workoutQuery, (snapshot) => {
+    state.workouts = snapshot.docs.map((d) => ({
+      id: d.id,
+      ...d.data()
+    }));
+
+    renderHistory();
+    renderProgress();
+    renderHome();
+  });
+}
+
+initData();
+
+/*******************************************************
+ * SPLIT CRUD
+ *******************************************************/
+addDayForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = document.getElementById("dayName").value.trim();
+  if (!name) return;
+
+  await addDoc(collection(db, "splitDays"), {
+    name,
+    exercises: [],
+    createdAt: serverTimestamp()
+  });
+
+  addDayForm.reset();
+});
+
+addExerciseForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const dayId = exerciseDaySelect.value;
+  const name = exerciseNameInput.value.trim();
+  if (!dayId || !name) return;
+
+  await updateDoc(doc(db, "splitDays", dayId), {
+    exercises: arrayUnion(name)
+  });
+
+  exerciseNameInput.value = "";
+});
+
+/*******************************************************
+ * EDIT SPLIT MODAL
+ *******************************************************/
+cancelEditSplit.addEventListener("click", () => {
+  editModal.classList.add("hidden");
+});
+
+saveSplitChanges.addEventListener("click", async () => {
+  const newName = editDayName.value.trim();
+  const exercises = [...editExerciseList.querySelectorAll("input")]
+    .map((i) => i.value.trim())
+    .filter((e) => e);
+
+  await updateDoc(doc(db, "splitDays", editingDayId), {
+    name: newName,
+    exercises
+  });
+
+  editModal.classList.add("hidden");
+});
+
+/*******************************************************
+ * RENDER SPLIT
+ *******************************************************/
+function renderSplit() {
+  splitList.innerHTML = "";
+
+  if (!state.splitDays.length) {
+    splitList.innerHTML = `<p class="small-muted">No training days yet.</p>`;
+    return;
+  }
+
+  state.splitDays.forEach((day) => {
+    const card = document.createElement("div");
+    card.className = "split-day-card";
+
+    card.innerHTML = `
+      <div class="split-day-header">
+        <span>${day.name}</span>
+        <button class="split-day-edit" data-id="${day.id}">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+      </div>
+      <ul>
+        ${
+          day.exercises.length === 0
+            ? "<li>No exercises yet.</li>"
+            : day.exercises.map((e) => `<li>${e}</li>`).join("")
+        }
+      </ul>
+    `;
+
+    splitList.appendChild(card);
+  });
+
+  document.querySelectorAll(".split-day-edit").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      editingDayId = btn.dataset.id;
+      const day = state.splitDays.find((d) => d.id === editingDayId);
+
+      editDayName.value = day.name;
+      editExerciseList.innerHTML = "";
+
+      day.exercises.forEach((ex) => {
+        const row = document.createElement("div");
+        row.className = "edit-ex-row";
+
+        const inp = document.createElement("input");
+        inp.value = ex;
+
+        const del = document.createElement("button");
+        del.className = "remove-ex-btn";
+        del.textContent = "✕";
+        del.addEventListener("click", () => row.remove());
+
+        row.append(inp, del);
+        editExerciseList.appendChild(row);
+      });
+
+      editModal.classList.remove("hidden");
+    });
+  });
+}
+
+function renderHomeSplitPreview() {
+  homeSplitList.innerHTML = "";
+  state.splitDays.forEach((day) => {
+    const card = document.createElement("div");
+    card.className = "split-day-card";
+
+    card.innerHTML = `
+      <div class="split-day-header">
+        <span>${day.name}</span>
+      </div>
+      <ul>
+        ${
+          day.exercises.length
+            ? day.exercises.map((e) => `<li>${e}</li>`).join("")
+            : "<li>No exercises yet.</li>"
+        }
+      </ul>
+    `;
+    homeSplitList.appendChild(card);
+  });
+}
+
+/*******************************************************
+ * WORKOUT CREATION
+ *******************************************************/
+function createExerciseRow(name = "") {
+  const row = document.createElement("div");
+  row.className = "exercise-row";
+
+  const ex = document.createElement("input");
+  ex.type = "text";
+  ex.value = name;
+  if (name) {
+    ex.readOnly = true;
+    ex.classList.add("exercise-name-readonly");
+  }
+
+  const sets = document.createElement("input");
+  sets.type = "number";
+  sets.value = 0;
+  sets.min = 0;
+
+  const reps = document.createElement("input");
+  reps.type = "number";
+  reps.value = 0;
+  reps.min = 0;
+
+  const weight = document.createElement("input");
+  weight.type = "number";
+  weight.value = 0;
+  weight.min = 0;
+
+  [sets, reps, weight].forEach((i) => i.addEventListener("input", recalcTotalVolume));
+
+  const remove = document.createElement("button");
+  remove.textContent = "✕";
+  remove.className = "exercise-remove-btn";
+  remove.addEventListener("click", () => row.remove());
+
+  row.append(ex, sets, reps, weight, remove);
+  return row;
+}
+
+function recalcTotalVolume() {
+  let total = 0;
+  workoutExercisesContainer.querySelectorAll(".exercise-row").forEach((row) => {
+    const [name, s, r, w] = row.querySelectorAll("input");
+    const sets = Number(s.value);
+    const reps = Number(r.value);
+    const weight = Number(w.value);
+
+    if (name.value.trim()) total += sets * reps * weight;
+  });
+
+  totalVolumeSpan.textContent = total;
+}
+
+workoutDaySelect.addEventListener("change", () => {
+  const day = state.splitDays.find((d) => d.id === workoutDaySelect.value);
+  workoutExercisesContainer.innerHTML = "";
+
+  if (day?.exercises.length) {
+    day.exercises.forEach((ex) => workoutExercisesContainer.appendChild(createExerciseRow(ex)));
+  } else {
+    workoutExercisesContainer.appendChild(createExerciseRow());
+  }
+
+  recalcTotalVolume();
+});
+
+addWorkoutExerciseBtn.addEventListener("click", () => {
+  workoutExercisesContainer.appendChild(createExerciseRow());
+});
+
+/*******************************************************
+ * SAVE WORKOUT (FIRESTORE)
+ *******************************************************/
+workoutForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const dayId = workoutDaySelect.value;
+  const date = workoutDateInput.value;
+  const day = state.splitDays.find((d) => d.id === dayId);
+
+  if (!day || !date) return;
+
+  const exercises = [];
+  workoutExercisesContainer.querySelectorAll(".exercise-row").forEach((row) => {
+    const [name, s, r, w] = row.querySelectorAll("input");
+    const n = name.value.trim();
+    const sets = Number(s.value);
+    const reps = Number(r.value);
+    const weight = Number(w.value);
+
+    if (!n || (sets === 0 && reps === 0 && weight === 0)) return;
+
+    exercises.push({
+      name: n,
+      sets,
+      reps,
+      weight,
+      volume: sets * reps * weight,
+    });
+  });
+
+  if (!exercises.length) return;
+
+  const totalVolume = exercises.reduce((sum, ex) => sum + ex.volume, 0);
+
+  await addDoc(collection(db, "workouts"), {
+    date,
+    dayId,
+    dayName: day.name,
+    exercises,
+    totalVolume,
+    createdAt: serverTimestamp()
+  });
+
+  workoutForm.reset();
+  workoutExercisesContainer.innerHTML = "";
+  workoutExercisesContainer.appendChild(createExerciseRow());
+  workoutDateInput.value = new Date().toLocaleDateString("en-CA");
+});
+
+/*******************************************************
+ * HISTORY DELETE
+ *******************************************************/
+historyEditBtn.addEventListener("click", () => {
+  historyDeleteMode = !historyDeleteMode;
+  renderHistory();
+});
+
+function renderHistory() {
+  const container = document.getElementById("historyCardList");
+  container.innerHTML = "";
+
+  if (!state.workouts.length) {
+    container.innerHTML = `<p class="small-muted">No workouts yet.</p>`;
+    return;
+  }
+
+  state.workouts.forEach((w) => {
+    const card = document.createElement("div");
+    card.className = "history-card";
+
+    // Header: Day name + date
+    const header = `
+      <div class="history-card-header">
+        <span>${w.dayName}</span>
+        <span class="history-card-date">${formatDate(w.date)}</span>
+      </div>
+    `;
+
+    // Exercises
+    const exHTML = w.exercises
+      .map((e) => 
+        `<div class="history-card-exercise">
+           • ${e.name} [${e.sets}×${e.reps} @ ${e.weight}kg]
+         </div>`
+      )
+      .join("");
+
+    // Volume
+    const volume = `
+      <div class="history-card-volume">
+        Total Volume: ${w.totalVolume} kg
+      </div>
+    `;
+
+    card.innerHTML = header + exHTML + volume;
+
+    // If delete mode is active → show delete button
+    if (historyDeleteMode) {
+      const del = document.createElement("button");
+      del.className = "history-delete-icon";
+      del.innerHTML = `<i class="fa-solid fa-trash"></i>`;
+
+      del.addEventListener("click", async () => {
+        await deleteDoc(doc(db, "workouts", w.id));
+      });
+
+      card.appendChild(del);
+    }
+
+    container.appendChild(card);
+  });
+}
+
+
+/*******************************************************
+ * PROGRESS PAGE
+ *******************************************************/
+function renderProgress() {
+  renderStreakCalendar();
+  renderWeeklyChart();
+}
+
+function renderStreakCalendar() {
+  streakCalendar.innerHTML = "";
+
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
+  const startDay = first.getDay();
+  const total = last.getDate();
+
+  ["S","M","T","W","T","F","S"].forEach((d) => {
+    const el = document.createElement("div");
+    el.className = "calendar-day-name";
+    el.textContent = d;
+    streakCalendar.appendChild(el);
+  });
+
+  for (let i = 0; i < startDay; i++) {
+    const empty = document.createElement("div");
+    empty.className = "calendar-cell empty";
+    streakCalendar.appendChild(empty);
+  }
+
+  const workoutDates = new Set(state.workouts.map((w) => w.date));
+  let trained = 0;
+
+  for (let d = 1; d <= total; d++) {
+    const dateKey = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const cell = document.createElement("div");
+    cell.className = "calendar-cell";
+    cell.textContent = d;
+
+    if (workoutDates.has(dateKey)) {
+      cell.classList.add("has-workout");
+      trained++;
+    }
+
+    streakCalendar.appendChild(cell);
+  }
+
+  streakSummary.textContent = trained
+    ? `${trained} training days this month`
+    : "No workouts logged this month.";
+}
+
+/*******************************************************
+ * WEEKLY TREND (Progress Page)
+ *******************************************************/
+function computeWeeklyAggregates() {
+  const map = new Map();
+
+  state.workouts.forEach((w) => {
+    const d = new Date(w.date);
+
+    const year = d.getFullYear();
+    const month = d.getMonth(); // 0–11
+    const monthName = d.toLocaleString("default", { month: "short" });
+
+    // week of month calculation
+    const firstOfMonth = new Date(year, month, 1);
+    const firstDay = firstOfMonth.getDay(); // 0 is Sunday
+    const date = d.getDate();
+    const weekOfMonth = Math.ceil((date + firstDay) / 7);
+
+    const key = `${monthName}-W${weekOfMonth}`;
+
+    if (!map.has(key)) {
+      map.set(key, { count: 0, volume: 0, sort: `${year}-${month+1}-${weekOfMonth}` });
+    }
+    map.get(key).count++;
+    map.get(key).volume += w.totalVolume;
+  });
+
+  // Sort by logical month-year-week
+  const sorted = [...map.entries()].sort((a, b) => 
+    a[1].sort.localeCompare(b[1].sort)
+  );
+
+  const labels = sorted.map((x) => x[0]);
+  const counts = sorted.map((x) => x[1].count);
+  const volumes = sorted.map((x) => x[1].volume);
+
+  return { labels, counts, volumes };
+}
+
+
+function renderWeeklyChart() {
+  const stats = computeWeeklyAggregates();
+
+  if (weeklyChartInstance) weeklyChartInstance.destroy();
+  if (!stats.labels.length) return;
+
+  const data = weeklyTrendMode === "count" ? stats.counts : stats.volumes;
+
+  weeklyChartInstance = new Chart(weeklyChartCanvas.getContext("2d"), {
+    type: "line",
+    data: {
+      labels: stats.labels,
+      datasets: [{
+        data,
+        borderWidth: 2,
+        borderColor: "rgb(249,31,162)",
+        backgroundColor: "rgba(249,31,162,0.15)",
+        tension: 0.3,
+        fill: true
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                precision: 0,    // no decimals
+                stepSize: 1,     // move in whole numbers
+                callback: function(value) {
+                  return Number.isInteger(value) ? value : null;
+                }
+              }
+            }
+          }
+
+    }
+  });
+}
+
+weeklyTrendToggleBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    weeklyTrendToggleBtns.forEach((x) => x.classList.remove("active"));
+    btn.classList.add("active");
+
+    weeklyTrendMode = btn.dataset.mode;
+    renderWeeklyChart();
+  });
+});
+
+/*******************************************************
+ * HOME PAGE
+ *******************************************************/
+function computeStreak() {
+  if (!state.workouts.length) return 0;
+
+  const dates = new Set(state.workouts.map((w) => w.date));
+  let streak = 0;
+
+  let cur = new Date();
+  cur.setHours(0, 0, 0, 0);
+
+  while (true) {
+    const key = cur.toLocaleDateString("en-CA");
+    if (dates.has(key)) {
+      streak++;
+      cur.setDate(cur.getDate() - 1);
+    } else break;
+  }
+
+  return streak;
+}
+
+function renderHomeSummary() {
+  const total = state.workouts.length;
+  const streak = computeStreak();
+
+  homeWeekCountEl.textContent = streak;
+  homeTotalWorkoutsEl.textContent = total;
+
+  if (streak >= 5) {
+    homeBadgeTextEl.textContent = "You’re on fire!";
+    homeBadgeEl.classList.remove("hidden");
+  } else if (streak >= 3) {
+    homeBadgeTextEl.textContent = "Nice consistency!";
+    homeBadgeEl.classList.remove("hidden");
+  } else if (streak >= 1) {
+    homeBadgeTextEl.textContent = "Good start!";
+    homeBadgeEl.classList.remove("hidden");
+  } else {
+    homeBadgeEl.classList.add("hidden");
+  }
+
+  homeStreakFill.style.width = `${Math.min(streak, 7) / 7 * 100}%`;
+
+  const now = new Date();
+  const dow = now.getDay();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - dow);
+
+  const workoutDates = new Set(state.workouts.map((w) => w.date));
+
+  homeWeekdayDots.forEach((dot, idx) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + idx);
+    const key = d.toLocaleDateString("en-CA");
+
+    if (workoutDates.has(key)) {
+      dot.classList.add("done");
+    } else {
+      dot.classList.remove("done");
+    }
+  });
+}
+
+/*******************************************************
+ * HOME 7-DAY VOLUME
+ *******************************************************/
+function renderHome7DayChart() {
+  if (!home7DayCanvas) return;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const labels = [];
+  const data = [];
+
+  for (let offset = 6; offset >= 0; offset--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - offset);
+
+    labels.push(days[d.getDay()]);
+
+    const key = d.toLocaleDateString("en-CA");
+    const dailyVolume = state.workouts
+      .filter((w) => w.date === key)
+      .reduce((sum, w) => sum + w.totalVolume, 0);
+
+    data.push(dailyVolume);
+  }
+
+  if (home7DayChartInstance) home7DayChartInstance.destroy();
+
+  home7DayChartInstance = new Chart(home7DayCanvas.getContext("2d"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: "rgb(249,31,162)",
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+}
+
+/*******************************************************
+ * HOME
+ *******************************************************/
+function renderHome() {
+  renderHomeSummary();
+  renderHomeSplitPreview();
+  renderHome7DayChart();
+}
+
+/*******************************************************
+ * INIT
+ *******************************************************/
+function init() {
+  workoutDateInput.value = new Date().toLocaleDateString("en-CA");
+  workoutExercisesContainer.appendChild(createExerciseRow());
+}
+
+init();

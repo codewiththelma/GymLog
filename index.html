@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GymLog</title>
+
+  <link rel="icon" href="images/logo.png" type="image/png">
+  <link rel="manifest" href="manifest.json">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="apple-touch-icon" href="images/gymlog.png">
+  <meta name="theme-color" content="#f91fa2">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header class="topbar">
+    <div class="brand">
+      <img id="brandLogo" class="brand-logo" src="images/logo.png" alt="GymLog logo">
+      <span class="brand-text">GymLog</span>
+    </div>
+
+    <!-- DARK MODE TOGGLE -->
+    <button id="themeToggle" class="theme-toggle">
+      <i class="fa-solid fa-moon"></i>
+    </button>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ============ HOME (DEFAULT VIEW) ============ -->
+    <section id="homeView" class="view active">
+      <!-- Weekly summary card -->
+      <div class="card home-summary-card">
+        <div class="home-summary-top">
+          <div>
+            <div class="home-week-count">
+              <span id="homeWeekCount">0</span>
+              <span class="home-week-label">this week</span>
+            </div>
+            <div class="home-total">
+              <span id="homeTotalWorkouts">0</span> total workouts
+            </div>
+          </div>
+          <div class="home-icon-pill">
+            <i class="fa-solid fa-fire-flame-simple"></i>
+          </div>
+        </div>
+
+        <div id="homeBadge" class="home-badge hidden">
+          <span id="homeBadgeText">You’re on fire!</span>
+        </div>
+
+        <div class="home-streak-bar">
+          <div id="homeStreakFill" class="home-streak-fill"></div>
+        </div>
+
+        <div class="home-weekdays" id="homeWeekdays">
+          <!-- Sunday-based indexing -->
+          <div class="home-day">
+            <div class="home-day-dot" data-index="0"></div>
+            <span>S</span>
+          </div>
+          <div class="home-day">
+            <div class="home-day-dot" data-index="1"></div>
+            <span>M</span>
+          </div>
+          <div class="home-day">
+            <div class="home-day-dot" data-index="2"></div>
+            <span>T</span>
+          </div>
+          <div class="home-day">
+            <div class="home-day-dot" data-index="3"></div>
+            <span>W</span>
+          </div>
+          <div class="home-day">
+            <div class="home-day-dot" data-index="4"></div>
+            <span>T</span>
+          </div>
+          <div class="home-day">
+            <div class="home-day-dot" data-index="5"></div>
+            <span>F</span>
+          </div>
+          <div class="home-day">
+            <div class="home-day-dot" data-index="6"></div>
+            <span>S</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Split preview (read-only) -->
+      <div class="card">
+        <div class="home-card-header">
+          <h2>Your Split</h2>
+        </div>
+        <div id="homeSplitList" class="split-list"></div>
+      </div>
+
+      <!-- Last 7 days volume chart -->
+      <div class="card">
+        <h2>Last 7 Days Volume</h2>
+        <canvas id="home7DayChart" height="160"></canvas>
+      </div>
+    </section>
+
+    <!-- ============ LOG WORKOUT ============ -->
+    <section id="workoutView" class="view view1">
+      <h1>Log Workout</h1>
+      <p class="subtitle">Select a training day and record your session.</p>
+
+      <div class="card">
+        <form id="workoutForm" class="form">
+
+          <label for="workoutDaySelect">Training Day</label>
+          <select id="workoutDaySelect" required>
+            <option value="">Select a day</option>
+          </select>
+
+          <label for="workoutDate">Date</label>
+          <input id="workoutDate" type="date" required />
+
+          <!-- Header row for exercise columns -->
+          <div class="exercise-header-row">
+            <span>Exercise</span>
+            <span>Sets</span>
+            <span>Reps</span>
+            <span>kg</span>
+          </div>
+
+          <div id="workoutExercisesContainer"></div>
+
+          <button type="button" id="addWorkoutExerciseBtn" class="secondary-btn">
+            + Add Exercise
+          </button>
+
+          <div class="total-volume">
+            Total Volume: <span id="totalVolume">0</span> kg
+          </div>
+
+          <button type="submit" class="primary-btn full-width">
+            Save Workout
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ============ SPLIT VIEW ============ -->
+    <section id="splitView" class="view">
+      <h1>Workout Split</h1>
+      <p class="subtitle">Create your training days and assign exercises.</p>
+
+      <div class="grid-2">
+        <!-- Add Day -->
+        <div class="split-card">
+          <h2>Add Workout Day</h2>
+          <form id="addDayForm" class="form">
+            <label for="dayName">Day Name</label>
+            <input id="dayName" type="text" placeholder="Push, Legs, Full Body..." required />
+            <button type="submit" class="primary-btn">Add Day</button>
+          </form>
+        </div>
+
+        <!-- Add Exercise to Day -->
+        <div class="split-card">
+          <h2>Add Exercise</h2>
+          <form id="addExerciseForm" class="form">
+            <label for="exerciseDaySelect">Day</label>
+            <select id="exerciseDaySelect" required>
+              <option value="">Select day</option>
+            </select>
+
+            <label for="exerciseName">Exercise Name</label>
+            <input id="exerciseName" type="text" placeholder="Bench Press" required />
+
+            <button type="submit" class="secondary-btn">Add Exercise</button>
+          </form>
+        </div>
+      </div>
+
+      <h2 class="section-heading">Your Split</h2>
+      <div id="splitList" class="split-list"></div>
+    </section>
+
+    <!-- ============ HISTORY ============ -->
+    <section id="historyView" class="view">
+      <div class="history-header">
+        <h1>History</h1>
+        <button id="historyEditBtn" class="history-edit-btn">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+      </div>
+      <p class="subtitle">Overview of your logged workouts.</p>
+
+      <div id="historyCardList" class="history-card-list"></div>
+
+    </section>
+
+    <!-- ============ PROGRESS ============ -->
+    <section id="progressView" class="view">
+      <h1>Progress</h1>
+      <p class="subtitle">Monthly streak and weekly workout trend.</p>
+
+      <div class="grid-2">
+        <!-- Streak Calendar -->
+        <div class="split-card">
+          <h2>This Month</h2>
+          <p id="streakSummary" class="streak-summary"></p>
+          <div id="streakCalendar" class="calendar"></div>
+        </div>
+
+        <!-- Weekly Trend -->
+        <div class="split-card">
+          <div class="home-chart-header">
+            <h2>Weekly Trend</h2>
+            <div class="home-chart-toggle">
+              <button class="home-toggle-btn active" data-mode="count">Workouts</button>
+              <button class="home-toggle-btn" data-mode="volume">Volume</button>
+            </div>
+          </div>
+          <canvas id="weeklyChart" height="220"></canvas>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-view="homeView">
+      <i class="fa-solid fa-house"></i>
+      <span>Home</span>
+    </button>
+
+    <button class="nav-btn" data-view="workoutView">
+      <i class="fa-solid fa-dumbbell"></i>
+      <span>Workout</span>
+    </button>
+
+    <button class="nav-btn" data-view="splitView">
+      <i class="fa-solid fa-table-cells-large"></i>
+      <span>Split</span>
+    </button>
+
+    <button class="nav-btn" data-view="historyView">
+      <i class="fa-solid fa-clock-rotate-left"></i>
+      <span>History</span>
+    </button>
+
+    <button class="nav-btn" data-view="progressView">
+      <i class="fa-solid fa-chart-column"></i>
+      <span>Progress</span>
+    </button>
+  </nav>
+
+  <!-- EDIT SPLIT MODAL -->
+  <div id="editModal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Edit Split Day</h2>
+
+      <label for="editDayName">Day Name</label>
+      <input id="editDayName" type="text" />
+
+      <label>Exercises</label>
+      <div id="editExerciseList"></div>
+
+      <div class="modal-actions">
+        <button id="saveSplitChanges" class="primary-btn">Save</button>
+        <button id="cancelEditSplit" class="secondary-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

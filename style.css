@@ -1,0 +1,777 @@
+/* GLOBAL */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --theme: rgb(249, 31, 162);
+  --card: #ffffff;
+  --text-main: #111111;
+  --text-muted: #6b6b6b;
+  --border: #e5e7eb;
+  --shadow: 0 12px 30px rgba(0,0,0,0.06);
+  --radius: 16px;
+  --bg: #fafafa;
+  --icon-filter: invert(0);
+  /* light-mode date icon (black calendar) */
+  --date-icon: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="black" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.9 3 3 3.9 3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>');
+}
+
+body.dark {
+  --bg: #0f0f14;
+  --card: #1b1b23;
+  --text-main: #ffffff;
+  --text-muted: #b0b3b8;
+  --border: #2d2d35;
+  --shadow: 0 8px 25px rgba(0,0,0,0.4);
+  --icon-filter: invert(1);
+  /* dark-mode date icon (white calendar) */
+  --date-icon: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%23ffffff" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.9 3 3 3.9 3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>');
+}
+
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: var(--bg);
+  color: var(--text-main);
+  transition: background 0.25s ease, color 0.25s ease;
+}
+
+/* HEADER */
+.topbar {
+  padding: 1rem 1.5rem;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.brand-text {
+  font-weight: 600;
+}
+
+/* THEME TOGGLE BUTTON */
+.theme-toggle {
+  margin-left: auto;
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: var(--text-main);
+  padding: 0.3rem;
+  transition: color 0.25s ease;
+}
+
+.theme-toggle i {
+  transition: transform 0.3s ease, color 0.25s ease;
+}
+
+/* rotate icon when dark mode is active */
+body.dark .theme-toggle i {
+  transform: rotate(180deg);
+  color: var(--theme);
+}
+
+/* MAIN LAYOUT */
+.main {
+  padding: 1rem 1.5rem 6rem;
+}
+
+.view {
+  display: none;
+}
+
+.view.active {
+  display: block;
+}
+
+/* TYPOGRAPHY */
+h1 {
+  font-size: 1.45rem;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+
+h2 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 0.9rem;
+}
+
+.section-heading {
+  margin-top: 1.5rem;
+  margin-bottom: 0.6rem;
+}
+
+/* CARDS */
+.card, .split-card{
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  padding: 1rem 1.2rem;
+  margin-bottom: 1.2rem;
+  transition: background 0.25s ease, border 0.25s ease;
+}
+
+/* FORMS */
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 0.6rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  background: var(--card);
+  color: var(--text-main);
+  transition: background 0.25s ease, color 0.25s ease, border 0.25s ease;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--theme);
+  outline: none;
+}
+
+/* number inputs – no ugly spinner background, min 0 handled in JS */
+input[type=number] {
+  -moz-appearance: textfield;
+}
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+  background: transparent;
+}
+
+/* date input – custom theme-aware calendar icon */
+input[type="date"] {
+  position: relative;
+  background-image: var(--date-icon);
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 18px 18px;
+}
+
+/* keep native clickable area but hide its graphic */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+/* BUTTONS */
+.primary-btn,
+.secondary-btn {
+  padding: 0.6rem 0.9rem;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  background: var(--theme);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: opacity 0.25s ease;
+}
+
+.primary-btn:hover,
+.secondary-btn:hover {
+  opacity: 0.9;
+}
+
+.full-width {
+  width: 100%;
+}
+
+/* ADD EXERCISE SMALL BUTTON */
+#addWorkoutExerciseBtn {
+  background: none;
+  color: var(--theme);
+  margin-top: 0.3rem;
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  width: 50%;
+}
+
+#addWorkoutExerciseBtn:hover {
+  border: 1px solid var(--theme);
+}
+
+/* GRID */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 800px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* SPLIT LIST */
+.split-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.split-day-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 0.9rem;
+  min-width: 180px;
+  transition: background 0.25s ease, border 0.25s ease;
+}
+
+.split-day-card ul {
+  padding-left: 1.1rem;
+  margin: 0.3rem 0 0;
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+
+/* split day header */
+.split-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.split-day-edit {
+  background: none;
+  border: none;
+  font-size: 0.85rem;
+  color: var(--theme);
+  cursor: pointer;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+}
+
+.split-day-edit:hover {
+  font-size: 0.95rem;
+}
+
+/* WORKOUT ROWS */
+.exercise-header-row {
+  display: grid;
+  grid-template-columns: 1.5fr repeat(3, 0.9fr);
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+}
+
+#workoutExercisesContainer {
+  margin-top: 0.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.exercise-row {
+  display: grid;
+  grid-template-columns: 1.5fr repeat(3, 0.9fr) auto;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.exercise-row input {
+  margin-bottom: 0;
+}
+
+.exercise-remove-btn {
+  border-radius: 10px;
+  border: 1px solid var(--text-muted);
+  background: none;
+  color: #b91c1c;
+  cursor: pointer;
+  padding: 0.3rem 0.55rem;
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.total-volume {
+  margin-top: 0.6rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* HISTORY TABLE */
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.history-table th,
+.history-table td {
+  padding: 0.45rem 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+/* smaller font for history entries */
+.history-table td {
+  font-size: 0.78rem;
+}
+/* HISTORY CARDS */
+.history-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.history-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.2rem;
+  position: relative;
+}
+
+.history-card-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.history-card-date {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.history-card-exercise {
+  font-size: 0.85rem;
+  margin: 0.25rem 0;
+}
+
+.history-card-volume {
+  margin-top: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.history-delete-icon {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #dc2626;
+  font-size: 1.1rem;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.history-delete-icon:hover {
+  opacity: 1;
+}
+
+
+.small-muted {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* history header edit button */
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.history-edit-btn {
+  background: none;
+  border: none;
+  color: var(--theme);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.history-edit-btn:hover {
+  background: rgba(249,31,162,0.12);
+}
+
+.history-delete-btn {
+  border: 1px solid var(--text-muted);
+  background: none;
+  color: #b91c1c;
+  padding: 0.25rem 0.45rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+/* PROGRESS – CALENDAR */
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.2rem;
+  margin-top: 0.4rem;
+}
+
+.calendar-day-name,
+.calendar-cell {
+  font-size: 0.75rem;
+  text-align: center;
+  padding: 0.3rem 0;
+}
+
+.calendar-cell {
+  border-radius: 999px;
+}
+
+.calendar-cell.empty {
+  visibility: hidden;
+}
+
+.calendar-cell.has-workout {
+  background: var(--theme);
+  color: #f9fafb;
+}
+
+.calendar-icon {
+  filter: var(--icon-filter);
+}
+
+.streak-summary {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* BOTTOM NAV (MYTRACKR STYLE) */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-around;
+  padding: 0.4rem 0 0.5rem;
+  z-index: 50;
+}
+
+.bottom-nav .nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.bottom-nav .nav-btn i {
+  font-size: 20px;
+  margin-bottom: 2px;
+}
+
+.bottom-nav .nav-btn.active {
+  color: var(--theme);
+}
+
+/* MODAL */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: var(--card);
+  padding: 1.4rem;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 420px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+#editExerciseList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.edit-ex-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.edit-ex-row input {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.remove-ex-btn {
+  border: 1px solid var(--text-muted);
+  background: none;
+  color: #b91c1c;
+  padding: 0.3rem 0.55rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.modal-actions {
+  margin-top: 0.8rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+/* HOME SUMMARY CARD */
+.home-summary-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+.home-week-count {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.home-week-count span:first-child {
+  font-size: 2.2rem;
+  font-weight: 600;
+}
+
+.home-week-label {
+  font-size: 0.9rem;
+}
+
+.home-total {
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+}
+
+.home-icon-pill {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: rgba(249,31,162,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.home-icon-pill i {
+  color: var(--theme);
+}
+
+/* badge */
+.home-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: var(--theme);
+  color: #fff;
+}
+
+.home-badge.hidden {
+  display: none;
+}
+
+/* streak bar */
+.home-streak-bar {
+  margin-top: 0.2rem;
+  margin-bottom: 0.5rem;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: #374151;
+  overflow: hidden;
+}
+
+.home-streak-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--theme);
+}
+
+/* weekdays row */
+.home-weekdays {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+}
+
+.home-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.home-day-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid #6b7280;
+  margin-bottom: 0.15rem;
+}
+
+.home-day-dot.done {
+  background: var(--theme);
+  border-color: var(--theme);
+}
+
+/* home split header */
+.home-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* HOME / PROGRESS TREND HEADER */
+.home-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.4rem;
+}
+
+.home-chart-toggle {
+  display: inline-flex;
+  border-radius: 999px;
+  background: #fff;
+  padding: 0.12rem;
+}
+
+.home-toggle-btn {
+  border: none;
+  background: transparent;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.home-toggle-btn.active {
+  background: #ffffff;
+  color: var(--theme);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+.brand-logo {
+  height: 22px;
+  width: auto;
+  object-fit: contain;
+  transition: filter 0.25s ease;
+}
+/* ==========================================
+   DESKTOP SIDEBAR NAVIGATION (≥ 900px)
+   ========================================== */
+@media (min-width: 900px) {
+
+  /* Move bottom nav to left sidebar */
+  .bottom-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 80px;
+    height: 100vh;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-right: 1px solid var(--border);
+    border-top: none;
+    padding-top: 1.2rem;
+    background: var(--card);
+    z-index: 999;
+  }
+
+  /* Buttons inside the sidebar */
+  .bottom-nav .nav-btn {
+    flex-direction: column;
+    padding: 1rem 0;
+    width: 100%;
+  }
+
+  .bottom-nav .nav-btn i {
+    margin-bottom: 4px;
+  }
+
+  /* Shift all main content to the right */
+  .main {
+    margin-left: 80px;
+    padding-bottom: 2rem;
+  }
+  /* Shift the header as well */
+  .topbar {
+    margin-left: 80px;
+    width: calc(100% - 80px);
+  }
+  .card{
+    max-width: 80%;
+    margin: 0 auto;
+    margin-bottom: 1.2rem;
+  }
+  .view1 h1, .view1 p {
+    max-width: 80%;
+    margin-left: 10%;
+  }
+  .view{
+    max-width: 80%;
+    margin: auto;
+  }
+}
