@@ -13,8 +13,11 @@ import {
   query,
   orderBy,
   onSnapshot,
-  arrayUnion
+  arrayUnion,
+  where,          // <-- ADD THIS
+  getDocs        // <-- AND THIS
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
+
 
 /*******************************************************
  *  FIREBASE INIT
@@ -660,32 +663,14 @@ weeklyTrendToggleBtns.forEach((btn) => {
 /*******************************************************
  * HOME PAGE
  *******************************************************/
-function computeStreak() {
-  if (!state.workouts.length) return 0;
-
-  const dates = new Set(state.workouts.map((w) => w.date));
-  let streak = 0;
-
-  let cur = new Date();
-  cur.setHours(0, 0, 0, 0);
-
-  while (true) {
-    const key = cur.toLocaleDateString("en-CA");
-    if (dates.has(key)) {
-      streak++;
-      cur.setDate(cur.getDate() - 1);
-    } else break;
-  }
-
-  return streak;
-}
-
-function renderHomeSummary() {
-  const total = state.workouts.length;
-  const streak = computeStreak();
+async function renderHomeSummary() {
+  const streak = await fetchWeeklyWorkouts();
 
   homeWeekCountEl.textContent = streak;
-  homeTotalWorkoutsEl.textContent = total;
+
+  // weekly workouts using createdAt
+  const monthly = await fetchMonthlyWorkouts();
+  homeTotalWorkoutsEl.textContent = monthly;
 
   if (streak >= 5) {
     homeBadgeTextEl.textContent = "You’re on fire!";
@@ -721,6 +706,60 @@ function renderHomeSummary() {
     }
   });
 }
+
+function getStartOfWeek() {
+  const now = new Date();
+  const day = now.getDay(); // 0 = Sunday
+  const sunday = new Date(now);
+  sunday.setDate(now.getDate() - day);
+  sunday.setHours(0, 0, 0, 0);
+  return sunday;
+}
+
+function getEndOfWeek(startOfWeek) {
+  const end = new Date(startOfWeek);
+  end.setDate(end.getDate() + 7); 
+  end.setHours(0, 0, 0, 0);
+  return end;
+}
+
+
+
+async function fetchWeeklyWorkouts() {
+  const start = getStartOfWeek();
+  const end = getEndOfWeek(start);
+
+  const workoutsRef = collection(db, "workouts"); // adjust collection name if needed
+
+  const q = query(
+    workoutsRef,
+    where("createdAt", ">=", start),
+    where("createdAt", "<", end)
+  );
+
+  const snap = await getDocs(q);
+  return snap.size; // workouts completed this week
+}
+async function fetchMonthlyWorkouts() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0–11
+
+  const monthStart = new Date(year, month, 1);
+  const nextMonth = new Date(year, month + 1, 1);
+
+  const workoutsRef = collection(db, "workouts");
+
+  const q = query(
+    workoutsRef,
+    where("createdAt", ">=", monthStart),
+    where("createdAt", "<", nextMonth)
+  );
+
+  const snap = await getDocs(q);
+  return snap.size;
+}
+
 
 /*******************************************************
  * HOME 7-DAY VOLUME
