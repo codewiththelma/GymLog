@@ -39,17 +39,20 @@ body {
   transition: background 0.25s ease, color 0.25s ease;
 }
 
-/* HEADER */
+
 .topbar {
   padding: 1rem 1.5rem;
   background: var(--card);
   border-bottom: 1px solid var(--border);
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  width: 100%;
   z-index: 20;
   display: flex;
   align-items: center;
 }
+
 
 .brand {
   display: flex;
@@ -86,6 +89,7 @@ body.dark .theme-toggle i {
 /* MAIN LAYOUT */
 .main {
   padding: 1rem 1.5rem 6rem;
+  margin-top: 75px;
 }
 
 .view {
