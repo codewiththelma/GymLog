@@ -6,7 +6,7 @@
 }
 
 :root {
-  --theme: rgb(249, 31, 162);
+  --theme: #f9951c;
   --card: #ffffff;
   --text-main: #111111;
   --text-muted: #6b6b6b;
@@ -54,7 +54,7 @@ body {
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.2rem;
 }
 
 .brand-text {

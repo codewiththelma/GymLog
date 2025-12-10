@@ -107,11 +107,6 @@ function applyTheme(theme) {
     themeToggle.innerHTML = `<i class="fa-solid fa-moon"></i>`;
   }
 
-  if (theme === "dark") {
-  logo.src = "images/logodark.png";
-  } else {
-    logo.src = "images/logo.png";
-  }
 }
 
 applyTheme(localStorage.getItem("theme") || "light");
@@ -625,8 +620,8 @@ function renderWeeklyChart() {
       datasets: [{
         data,
         borderWidth: 2,
-        borderColor: "rgb(249,31,162)",
-        backgroundColor: "rgba(249,31,162,0.15)",
+        borderColor: "#f9951c",
+        backgroundColor: "#57340aff",
         tension: 0.3,
         fill: true
       }]
@@ -796,7 +791,7 @@ function renderHome7DayChart() {
       labels,
       datasets: [{
         data,
-        backgroundColor: "rgb(249,31,162)",
+        backgroundColor: "#f9951c",
       }]
     },
     options: {
