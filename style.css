@@ -581,8 +581,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   gap: 0.3rem;
 }
 
-.home-week-count span:first-child {
-  font-size: 2.2rem;
+.home-week-count span:first-child,.num {
+  font-size: 1.2rem;
   font-weight: 600;
 }
 
@@ -777,7 +777,13 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 }
 .home-week-icon {
-  font-size: 1.3rem;
+  color:var(--theme);
+  font-size: 0.9rem;
+}
+.home-week-text {
+  margin-left: 5px;
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
 }
 
 
@@ -913,17 +919,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
    PROFILE PAGE
 ============================ */
 
-.profile-body {
-  background: var(--bg);
-  color: var(--text-main);
-}
-
-.profile-container {
-  max-width: 450px;
-  margin: auto;
-  padding: 1rem 1.5rem;
-}
-
 .profile-label {
   font-size: 0.85rem;
   color: var(--text-muted);
@@ -962,8 +957,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .delete-btn {
   background: #dc2626;
   color: #fff;
-  padding: 0.8rem;
-  border-radius: 12px;
+  padding: 0.6rem 0.9rem;
+  border-radius: 20px;
   border: none;
   cursor: pointer;
   font-weight: 600;
@@ -1015,11 +1010,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .top-bar-side {
   display: flex;
   gap: 0.5rem;
-}
-.profile-container{
-  margin-top: 5rem;
-  margin-bottom: 3rem;
-
 }
 .input-error {
   border: 2px solid #ef4444 !important;

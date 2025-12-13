@@ -762,14 +762,11 @@ async function renderHomeSummary() {
   const monthly = await fetchMonthlyWorkouts();
   homeTotalWorkoutsEl.textContent = monthly;
 
-  if (streak >= 5) {
+  if (streak >= 4) {
     homeBadgeTextEl.textContent = "You’re on fire!";
     homeBadgeEl.classList.remove("hidden");
   } else if (streak >= 3) {
     homeBadgeTextEl.textContent = "Nice consistency!";
-    homeBadgeEl.classList.remove("hidden");
-  } else if (streak >= 1) {
-    homeBadgeTextEl.textContent = "Good start!";
     homeBadgeEl.classList.remove("hidden");
   } else {
     homeBadgeEl.classList.add("hidden");
