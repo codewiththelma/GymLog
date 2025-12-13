@@ -9,13 +9,26 @@
   <link rel="manifest" href="manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script>
+      const theme =
+        localStorage.getItem('gymLog-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+      document.documentElement.setAttribute('data-theme', theme);
+    </script>
   <link rel="stylesheet" href="style.css" />
   <link rel="apple-touch-icon" href="images/gymlog.png">
   <meta name="theme-color" content="#f91fa2">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-<body>
+<body class="spa-preload">
+  <div id="preloader" class="preloader">
+  <div class="loader-dumbbell">
+  <i class="fa-solid fa-dumbbell"></i>
+</div>
+
+</div>
 
   <!-- HEADER -->
   <header class="topbar">
@@ -24,9 +37,10 @@
       <span class="brand-text">GymLog</span>
     </div>
 
-    <!-- DARK MODE TOGGLE -->
     <button id="themeToggle" class="theme-toggle">
-      <i class="fa-solid fa-moon"></i>
+    </button>
+    <button id="profileBtn" class="nav-btn icon-button" data-view="profileView">
+          <i class="fa-solid fa-user"></i>
     </button>
   </header>
 
@@ -34,7 +48,7 @@
   <main class="main">
 
     <!-- ============ HOME (DEFAULT VIEW) ============ -->
-    <section id="homeView" class="view active">
+    <section id="homeView" class="view active view1">
       <!-- Weekly summary card -->
       <div class="card home-summary-card">
         <div class="home-summary-top">
@@ -96,6 +110,9 @@
         <div class="home-card-header">
           <h2>Your Split</h2>
         </div>
+        <p id="noSplitsMessage" class="empty-message" style="display:none;">
+          No active splits yet
+        </p>
         <div id="homeSplitList" class="split-list"></div>
       </div>
 
@@ -148,7 +165,7 @@
     </section>
 
     <!-- ============ SPLIT VIEW ============ -->
-    <section id="splitView" class="view">
+    <section id="splitView" class="view ">
       <h1>Workout Split</h1>
       <p class="subtitle">Create your training days and assign exercises.</p>
 
@@ -225,6 +242,39 @@
       </div>
     </section>
 
+    <section id="profileView" class="view">
+      <h1>Personal Info</h1>
+      <br>
+      <!-- Username -->
+      <label class="profile-label">Username</label>
+      <input id="profileName" class="pro-input" type="text" placeholder="Your username" autocomplete="off" />
+
+      <!-- Email -->
+      <label class="profile-label">Email</label>
+      <input id="profileEmail" class="pro-input" type="email" disabled />
+
+      <!-- Password Display -->
+      <label class="profile-label">Password</label>
+      <input class="pro-input" type="password" value="********" disabled />
+      <button id="changePasswordBtn" class="link-button">Change Password</button>
+      <br>
+
+      <!-- Created -->
+      <label class="profile-label">Created On</label>
+      <input id="profileCreated" class="pro-input" type="text" disabled />
+
+      <!-- Action Buttons -->
+      <div class="profile-actions">
+        <button id="logoutBtn" class="secondary-btn full-width">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+        </button>
+
+        <button id="deleteAccountBtn" class="delete-btn full-width">
+          <i class="fa-solid fa-trash"></i> Delete Account
+        </button>
+      </div>
+    </section>
+
   </main>
 
   <!-- BOTTOM NAV -->
@@ -272,6 +322,61 @@
       </div>
     </div>
   </div>
+
+      <!-- CHANGE PASSWORD MODAL -->
+    <div id="passwordModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Change Password</h2>
+          <button id="closePasswordModal" class="modal-close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <label class="profile-label">Current Password</label>
+          <input id="currentPasswordInput" class="pro-input" type="password" placeholder="Enter current password" />
+
+          <label class="profile-label">New Password</label>
+          <input id="newPasswordInput" class="pro-input" type="password" placeholder="Enter new password" />
+        </div>
+
+        <div class="modal-actions">
+          <button id="cancelPasswordBtn" class="secondary-btn">Cancel</button>
+          <button id="savePasswordBtn" class="primary-btn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DELETE ACCOUNT PASSWORD MODAL -->
+<div id="deleteModal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Confirm Account Deletion</h2>
+      <button id="closeDeleteModal" class="modal-close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <label class="profile-label">Enter Password</label>
+      <input id="deletePasswordInput" class="pro-input" type="password" placeholder="Password" />
+    </div>
+
+    <div class="modal-actions">
+      <button id="cancelDeleteBtn" class="secondary-btn">Cancel</button>
+      <button id="confirmDeleteBtn" class="delete-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+    <!-- ERROR / SUCCESS POPUP -->
+    <div id="errorPopup" class="success-overlay hidden">
+      <div class="success-card">
+        <div class="success-icon error"><i class="fa-solid fa-xmark-circle"></i></div>
+        <div id="errorMessage" class="success-text"></div>
+      </div>
+    </div>
 
   <script type="module" src="app.js"></script>
 </body>

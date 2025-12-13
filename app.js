@@ -15,10 +15,19 @@ import {
   onSnapshot,
   arrayUnion,
   where,          // <-- ADD THIS
-  getDocs        // <-- AND THIS
+  getDocs,
+  getDoc,        // <-- AND THIS
 } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
-
-
+import {
+  getAuth,
+  onAuthStateChanged,
+  updateProfile,
+  updatePassword,
+  signOut,
+  deleteUser,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+} from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
 /*******************************************************
  *  FIREBASE INIT
  *******************************************************/
@@ -33,6 +42,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth();
 
 /*******************************************************
  *  LOCAL UI STATE (NOT SAVED)
@@ -94,11 +104,66 @@ const saveSplitChanges = document.getElementById("saveSplitChanges");
 const cancelEditSplit = document.getElementById("cancelEditSplit");
 const logo = document.getElementById("brandLogo");
 let editingDayId = null;
+let userDoc = null;
+const usernameInput = document.getElementById("profileName");
+const emailInput = document.getElementById("profileEmail");
+const createdInput = document.getElementById("profileCreated");
+
+const changePasswordBtn = document.getElementById("changePasswordBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+const deleteAccountBtn = document.getElementById("deleteAccountBtn");
+
+const passwordModal = document.getElementById("passwordModal");
+const closePasswordModal = document.getElementById("closePasswordModal");
+const cancelPasswordBtn = document.getElementById("cancelPasswordBtn");
+const savePasswordBtn = document.getElementById("savePasswordBtn");
+
+const currentPasswordInput = document.getElementById("currentPasswordInput");
+const newPasswordInput = document.getElementById("newPasswordInput");
+
+const errorPopup = document.getElementById("errorPopup");
+const errorMessage = document.getElementById("errorMessage");
+
+/* ---------------------------
+   DELETE MODAL ELEMENTS
+---------------------------- */
+const deleteModal = document.getElementById("deleteModal");
+const closeDeleteModal = document.getElementById("closeDeleteModal");
+const cancelDeleteBtn = document.getElementById("cancelDeleteBtn");
+const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+const deletePasswordInput = document.getElementById("deletePasswordInput");
+
+function showError(msg) {
+  errorMessage.textContent = msg;
+  const icon = errorPopup.querySelector(".success-icon");
+  icon.innerHTML = `<i class="fa-solid fa-xmark-circle"></i>`;
+  
+  icon.classList.remove("success");
+  icon.classList.add("error");
+  errorPopup.classList.remove("hidden");
+
+  setTimeout(() => errorPopup.classList.add("hidden"), 1800);
+}
+
+function showSuccess(msg) {
+  errorMessage.textContent = msg;
+  const icon = errorPopup.querySelector(".success-icon");
+  icon.innerHTML = `<i class="fa-solid fa-circle-check"></i>`;
+  icon.classList.remove("error");
+  icon.classList.add("success");
+
+  errorPopup.classList.remove("hidden");
+
+  setTimeout(() => errorPopup.classList.add("hidden"), 1800);
+}
 
 /*******************************************************
  * DARK MODE
  *******************************************************/
 function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('gymLog-theme', theme);
+
   if (theme === "dark") {
     document.body.classList.add("dark");
     themeToggle.innerHTML = `<i class="fa-solid fa-sun"></i>`;
@@ -106,16 +171,19 @@ function applyTheme(theme) {
     document.body.classList.remove("dark");
     themeToggle.innerHTML = `<i class="fa-solid fa-moon"></i>`;
   }
-
 }
+function initTheme() {
+  const saved = localStorage.getItem('gymLog-theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = saved || (prefersDark ? 'dark' : 'light');
 
-applyTheme(localStorage.getItem("theme") || "light");
+  applyTheme(theme);
 
-themeToggle.addEventListener("click", () => {
-  const mode = document.body.classList.contains("dark") ? "light" : "dark";
-  localStorage.setItem("theme", mode);
-  applyTheme(mode);
-});
+  themeToggle.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  });
+}
 
 
 /*******************************************************
@@ -123,14 +191,31 @@ themeToggle.addEventListener("click", () => {
  *******************************************************/
 navBtns.forEach((btn) => {
   btn.addEventListener("click", () => {
+    const view = btn.dataset.view;
+    sessionStorage.setItem("activeView", view);
+
     navBtns.forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
 
     views.forEach((v) => {
-      v.classList.toggle("active", v.id === btn.dataset.view);
+      v.classList.toggle("active", v.id === view);
     });
   });
 });
+
+function restoreSessionView() {
+  const saved = sessionStorage.getItem("activeView");
+  if (!saved) return;
+
+  views.forEach(v => {
+    v.classList.toggle("active", v.id === saved);
+  });
+
+  navBtns.forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.view === saved);
+  });
+}
+
 
 function formatDate(dateStr) {
   const d = new Date(dateStr + "T00:00:00");
@@ -159,7 +244,7 @@ function updateDaySelects() {
  *******************************************************/
 function initData() {
   /** Split days */
-  const splitQuery = query(collection(db, "splitDays"), orderBy("createdAt"));
+  const splitQuery = query(collection(db, 'users', auth.currentUser.uid, "splitDays"), orderBy("createdAt"));
   onSnapshot(splitQuery, (snapshot) => {
     state.splitDays = snapshot.docs.map((d) => ({
       id: d.id,
@@ -171,7 +256,7 @@ function initData() {
   });
 
   /** Workouts */
-  const workoutQuery = query(collection(db, "workouts"), orderBy("date", "desc"));
+  const workoutQuery = query(collection(db, 'users', auth.currentUser.uid, "workouts"), orderBy("date", "desc"));
   onSnapshot(workoutQuery, (snapshot) => {
     state.workouts = snapshot.docs.map((d) => ({
       id: d.id,
@@ -184,7 +269,6 @@ function initData() {
   });
 }
 
-initData();
 
 /*******************************************************
  * SPLIT CRUD
@@ -194,7 +278,7 @@ addDayForm.addEventListener("submit", async (e) => {
   const name = document.getElementById("dayName").value.trim();
   if (!name) return;
 
-  await addDoc(collection(db, "splitDays"), {
+  await addDoc(collection(db, 'users', auth.currentUser.uid, "splitDays"), {
     name,
     exercises: [],
     createdAt: serverTimestamp()
@@ -209,7 +293,7 @@ addExerciseForm.addEventListener("submit", async (e) => {
   const name = exerciseNameInput.value.trim();
   if (!dayId || !name) return;
 
-  await updateDoc(doc(db, "splitDays", dayId), {
+  await updateDoc(doc(db, 'users', auth.currentUser.uid, "splitDays", dayId), {
     exercises: arrayUnion(name)
   });
 
@@ -229,7 +313,7 @@ saveSplitChanges.addEventListener("click", async () => {
     .map((i) => i.value.trim())
     .filter((e) => e);
 
-  await updateDoc(doc(db, "splitDays", editingDayId), {
+  await updateDoc(doc(db, 'users', auth.currentUser.uid, "splitDays", editingDayId), {
     name: newName,
     exercises
   });
@@ -301,7 +385,14 @@ function renderSplit() {
 }
 
 function renderHomeSplitPreview() {
+  const noSplitsMessage = document.getElementById("noSplitsMessage");
   homeSplitList.innerHTML = "";
+  if (!state.splitDays || state.splitDays.length === 0) {
+    noSplitsMessage.style.display = "block";
+    return;
+  }
+
+  noSplitsMessage.style.display = "none";
   state.splitDays.forEach((day) => {
     const card = document.createElement("div");
     card.className = "split-day-card";
@@ -429,7 +520,7 @@ workoutForm.addEventListener("submit", async (e) => {
 
   const totalVolume = exercises.reduce((sum, ex) => sum + ex.volume, 0);
 
-  await addDoc(collection(db, "workouts"), {
+  await addDoc(collection(db, 'users', auth.currentUser.uid, "workouts"), {
     date,
     dayId,
     dayName: day.name,
@@ -453,13 +544,17 @@ historyEditBtn.addEventListener("click", () => {
 });
 
 function renderHistory() {
+  const editBtn = document.querySelector(".history-edit-btn");
   const container = document.getElementById("historyCardList");
   container.innerHTML = "";
 
   if (!state.workouts.length) {
-    container.innerHTML = `<p class="small-muted">No workouts yet.</p>`;
+    container.innerHTML = `<p class="small-muted">No workouts logged yet.</p>`;
+    if (editBtn) editBtn.style.display = "none";
     return;
   }
+
+  if (editBtn) editBtn.style.display = "block";
 
   state.workouts.forEach((w) => {
     const card = document.createElement("div");
@@ -498,7 +593,7 @@ function renderHistory() {
       del.innerHTML = `<i class="fa-solid fa-trash"></i>`;
 
       del.addEventListener("click", async () => {
-        await deleteDoc(doc(db, "workouts", w.id));
+        await deleteDoc(doc(db, 'users', auth.currentUser.uid, "workouts", w.id));
       });
 
       card.appendChild(del);
@@ -724,7 +819,7 @@ async function fetchWeeklyWorkouts() {
   const start = getStartOfWeek();
   const end = getEndOfWeek(start);
 
-  const workoutsRef = collection(db, "workouts"); // adjust collection name if needed
+  const workoutsRef = collection(db, 'users', auth.currentUser.uid, "workouts"); // adjust collection name if needed
 
   const q = query(
     workoutsRef,
@@ -743,7 +838,7 @@ async function fetchMonthlyWorkouts() {
   const monthStart = new Date(year, month, 1);
   const nextMonth = new Date(year, month + 1, 1);
 
-  const workoutsRef = collection(db, "workouts");
+  const workoutsRef = collection(db, 'users', auth.currentUser.uid, "workouts");
 
   const q = query(
     workoutsRef,
@@ -811,11 +906,144 @@ function renderHome() {
 }
 
 /*******************************************************
- * INIT
+ * PROFILE
  *******************************************************/
+
+usernameInput.addEventListener("change", async () => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  try {
+    await updateProfile(user, { displayName: usernameInput.value });
+    showSuccess("Username updated!");
+  } catch (err) {
+    console.error(err);
+    showError("Unable to update username.");
+  }
+});
+
+changePasswordBtn.addEventListener("click", () => {
+  currentPasswordInput.value = "";
+  newPasswordInput.value = "";
+  passwordModal.classList.remove("hidden");
+});
+
+closePasswordModal.addEventListener("click", () => {
+  passwordModal.classList.add("hidden");
+});
+
+cancelPasswordBtn.addEventListener("click", () => {
+  passwordModal.classList.add("hidden");
+});
+
+savePasswordBtn.addEventListener("click", async () => {
+  const user = auth.currentUser;
+  if (!user) return;
+
+  const currentPass = currentPasswordInput.value.trim();
+  const newPass = newPasswordInput.value.trim();
+
+  if (newPass.length < 6) return showError("New password too short.");
+
+  try {
+    // Reauthenticate
+    const credential = EmailAuthProvider.credential(user.email, currentPass);
+    await reauthenticateWithCredential(user, credential);
+
+    await updatePassword(user, newPass);
+
+    passwordModal.classList.add("hidden");
+    showSuccess("Password updated!");
+  } catch (err) {
+    console.error(err);
+    if (
+    err.code === "auth/wrong-password" ||
+    err.code === "auth/invalid-credential"
+  ) {
+
+    showError("Incorrect current password.");
+  } else {
+    showError("Unable to update password.");
+  }
+  }
+});
+
+logoutBtn.addEventListener("click", async () => {
+  await signOut(auth);
+  sessionStorage.removeItem("activeView");
+  window.location.href = "login.html";
+});
+
+deleteAccountBtn.addEventListener("click", () => {
+  deletePasswordInput.value = "";
+  deleteModal.classList.remove("hidden");
+});
+
+closeDeleteModal.onclick = () => deleteModal.classList.add("hidden");
+cancelDeleteBtn.onclick = () => deleteModal.classList.add("hidden");
+
+confirmDeleteBtn.addEventListener("click", async () => {
+  const user = auth.currentUser;
+  const password = deletePasswordInput.value.trim();
+
+  if (!password) {
+    showError("Please enter your password.");
+    return;
+  }
+
+  try {
+    // Reauthenticate
+    const credential = EmailAuthProvider.credential(user.email, password);
+    await reauthenticateWithCredential(user, credential);
+
+    await deleteDoc(doc(db, "users", user.uid));
+    // Delete immediately
+    await deleteUser(user);
+
+    showSuccess("Account deleted");
+    setTimeout(() => (window.location.href = "signup.html"), 600);
+  } catch (err) {
+    console.error(err);
+
+    if (
+    err.code === "auth/wrong-password" ||
+    err.code === "auth/invalid-credential"
+  ) {
+      showError("Incorrect password.");
+    } else {
+      showError("Could not delete account.");
+    }
+  }
+});
+
 function init() {
   workoutDateInput.value = new Date().toLocaleDateString("en-CA");
   workoutExercisesContainer.appendChild(createExerciseRow());
 }
+function initProfile(user) {
+    const data = userDoc.data();
+    // Fill Email
+    usernameInput.setAttribute('readonly', true);
+    usernameInput.value = data?.username || user.displayName || '';
+    setTimeout(() => usernameInput.removeAttribute('readonly'), 100);
+    emailInput.value = user.email;
+  
+    if (createdInput && data.createdOn) {
+      createdInput.value = new Date(data.createdOn).toLocaleDateString();
+    }
+}
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = '../login.html';
+    return;
+  }
+    initTheme();
+    restoreSessionView(); 
+    init();
+    initData();
+    userDoc = await getDoc(doc(db, 'users', user.uid));
+    initProfile(user)
+    document.body.classList.remove("spa-preload");
+    document.getElementById("preloader").style.display = "none";
 
-init();
+});

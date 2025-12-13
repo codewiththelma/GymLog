@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GymLog – Sign Up</title>
+
+    <script>
+      const theme =
+        localStorage.getItem('gymLog-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+      document.documentElement.setAttribute('data-theme', theme);
+    </script>
+
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" type="image/png" href="images/logo2.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+  </head>
+
+  <body class="auth-body">
+    <div class="auth-container">
+      <img src="images/logo2.png" class="auth-logo" />
+
+      <h1 class="auth-title">Create Account</h1>
+      <p class="auth-sub">Sign up to start using GymLog</p>
+
+      <form id="signupForm" class="auth-form">
+        <input
+          id="signupUsername"
+          type="text"
+          placeholder="Username"
+          autocomplete="off"
+          required
+        />
+
+        <input
+          id="signupEmail"
+          type="email"
+          placeholder="Email"
+          autocomplete="off"
+          required
+        />
+
+        <input
+          id="signupPassword"
+          type="password"
+          placeholder="Password"
+          required
+        />
+
+        <input
+          id="signupPassword2"
+          type="password"
+          placeholder="Confirm Password"
+          required
+        />
+
+        <button class="auth-btn" type="submit">Create Account</button>
+      </form>
+
+      <p class="auth-switch">
+        Already have an account?
+        <a href="login.html">Log in</a>
+      </p>
+
+      <p id="authError" class="auth-error hidden"></p>
+    </div>
+
+    <script type="module" src="signup.js"></script>
+  </body>
+</html>

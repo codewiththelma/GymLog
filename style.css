@@ -19,7 +19,7 @@
   --date-icon: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="black" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5C3.9 3 3 3.9 3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>');
 }
 
-body.dark {
+:root[data-theme='dark'] {
   --bg: #0f0f14;
   --card: #1b1b23;
   --text-main: #ffffff;
@@ -53,7 +53,6 @@ body {
   align-items: center;
 }
 
-
 .brand {
   display: flex;
   align-items: center;
@@ -69,7 +68,7 @@ body {
   margin-left: auto;
   background: none;
   border: none;
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   cursor: pointer;
   color: var(--text-main);
   padding: 0.3rem;
@@ -79,11 +78,13 @@ body {
 .theme-toggle i {
   transition: transform 0.3s ease, color 0.25s ease;
 }
+.theme-toggle i:hover {
+  color: var(--theme);
+}
 
 /* rotate icon when dark mode is active */
 body.dark .theme-toggle i {
   transform: rotate(180deg);
-  color: var(--theme);
 }
 
 /* MAIN LAYOUT */
@@ -218,6 +219,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .full-width {
   width: 100%;
 }
+.btn-row{
+  margin-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+}
 
 /* ADD EXERCISE SMALL BUTTON */
 #addWorkoutExerciseBtn {
@@ -321,13 +327,16 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 .exercise-remove-btn {
   border-radius: 10px;
-  border: 1px solid var(--text-muted);
+  border: none;
   background: none;
-  color: #b91c1c;
+  color: #f80d0d;
   cursor: pointer;
   padding: 0.3rem 0.55rem;
-  font-size: 0.75rem;
-  opacity: 0.8;
+  font-size: 1rem;
+  font-weight: 900;
+}
+.exercise-remove-btn:hover {
+  transform: scale(1.1);
 }
 
 .total-volume {
@@ -336,24 +345,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   color: var(--text-muted);
 }
 
-/* HISTORY TABLE */
-.history-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.history-table th,
-.history-table td {
-  padding: 0.45rem 0.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  text-align: left;
-}
-
-/* smaller font for history entries */
-.history-table td {
-  font-size: 0.78rem;
-}
 /* HISTORY CARDS */
 .history-card-list {
   display: flex;
@@ -431,7 +422,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 }
 
 .history-edit-btn:hover {
-  background: rgba(249,31,162,0.12);
+  transform: scale(1.2);
 }
 
 .history-delete-btn {
@@ -774,16 +765,368 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     margin: 0 auto;
     margin-bottom: 1.2rem;
   }
-  .view1 h1, .view1 p {
-    max-width: 80%;
-    margin-left: 10%;
-  }
   .view{
     max-width: 80%;
     margin: auto;
+  }
+  .view1 h1, .view1 p {
+    margin-left: 10%;
+  }
+  .view1{
+    max-width: 90%;
   }
 }
 .home-week-icon {
   font-size: 1.3rem;
 }
 
+
+.auth-body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text-main);
+
+  padding: 1rem;
+}
+
+.auth-container {
+  width: 90%;
+  max-width: 600px;
+  padding: 2rem 1.8rem;
+  text-align: center;
+}
+
+.auth-title {
+  font-size: 1.55rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+}
+
+.auth-sub {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 1.4rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 0.9rem;
+  margin: 0.45rem 0;
+  font-size: 0.95rem;
+
+  border-radius: 12px;
+  border: 1px solid var(--border);
+
+  background: var(--card);
+  color: var(--text-main);
+
+  transition: border 0.25s ease, background 0.25s ease;
+}
+
+.auth-form input:focus {
+  outline: none;
+  border-color: var(--theme);
+}
+
+.auth-btn {
+  width: 100%;
+  padding: 0.9rem;
+
+  background: var(--theme);     /* FIX: uses GymLog theme */
+  color: #fff;
+
+  border-radius: 12px;
+  margin-top: 1rem;
+  border: none;
+
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+
+  transition: opacity 0.25s ease, transform 0.1s ease;
+}
+
+.auth-btn:hover {
+  opacity: 0.9;
+}
+
+.auth-btn:active {
+  transform: scale(0.98);
+}
+
+.auth-switch {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.auth-switch a {
+  color: var(--theme);
+  font-weight: 600;
+}
+
+.auth-error {
+  background: #ef4444;
+  color: #fff;
+  padding: 0.7rem;
+  border-radius: 10px;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+}
+
+.auth-error.hidden {
+  display: none;
+}
+.auth-container {
+  animation: fadeIn 1.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.auth-logo {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 1rem;
+  object-fit: contain;
+
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%   { transform: translateY(-20px); }
+  50%  { transform: translateY(20px); }
+  100% { transform: translateY(-20px); }
+}
+
+/* ============================
+   PROFILE PAGE
+============================ */
+
+.profile-body {
+  background: var(--bg);
+  color: var(--text-main);
+}
+
+.profile-container {
+  max-width: 450px;
+  margin: auto;
+  padding: 1rem 1.5rem;
+}
+
+.profile-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 1rem;
+}
+
+.pro-input {
+  width: 100%;
+  padding: 0.8rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-main);
+  margin-top: 0.25rem;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--theme);
+  margin-top: 0.35rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  width: 100%;
+  text-align: right;
+}
+
+.profile-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+/* Delete */
+.delete-btn {
+  background: #dc2626;
+  color: #fff;
+  padding: 0.8rem;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+
+/* Popup */
+.success-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.success-overlay.hidden {
+  display: none;
+}
+
+.success-card {
+  background: var(--card);
+  padding: 1rem 1.4rem;
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.success-icon {
+  font-size: 1.4rem;
+  color: var(--theme);
+}
+
+.success-icon.error {
+  color: #ef4444;
+}
+.success-icon.success {
+  color: #22c55e;
+}
+
+.success-text {
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+.top-bar-side {
+  display: flex;
+  gap: 0.5rem;
+}
+.profile-container{
+  margin-top: 5rem;
+  margin-bottom: 3rem;
+
+}
+.input-error {
+  border: 2px solid #ef4444 !important;
+}
+.field-error-text {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin: 0;
+  padding: 0;
+  margin-bottom: 6px;
+}
+.icon-button {
+  border: none;
+  background: none;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-main);
+}
+.icon-button i {
+  font-size: 1.2rem;
+}
+
+.icon-button i:hover {
+  color: var(--theme);
+}
+.icon-button.active {
+  color: var(--theme);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.modal-close {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.modal-close i {
+  font-size: 1rem;
+}
+.view {
+  display: none;
+}
+
+.view.active {
+  display: block;
+}
+
+
+/* PRELOADER BASE */
+#preloader {
+  display: flex;
+}
+
+.spa-preload .view {
+  display: none !important;
+}
+
+.preloader {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loader-dumbbell i {
+  font-size: 42px;
+  color: var(--theme);
+  animation: spinLoader 1s linear infinite;
+}
+
+@keyframes spinLoader {
+  0% { transform: rotate(0deg) scale(1); opacity: 1; }
+  50% { transform: rotate(180deg) scale(1.05); opacity: 0.9; }
+  100% { transform: rotate(360deg) scale(1); opacity: 1; }
+}
+.empty-message {
+  text-align: center;
+  opacity: 0.6;
+  margin-top: 8px;
+  font-size: 0.8rem;
+}
+.forgot-link {
+  text-align: right;
+  margin-top: 8px;
+  font-size: 0.85rem;
+  opacity: 0.8;
+  cursor: pointer;
+}
+.forgot-link:hover {
+  opacity: 1;
+}

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GymLog – Login</title>
+
+    <!-- Theme sync with main app -->
+    <script>
+      const theme =
+        localStorage.getItem('gymLog-theme') ||
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+
+      document.documentElement.setAttribute('data-theme', theme);
+    </script>
+
+    <link rel="stylesheet" href="style.css" />
+    <link rel="icon" type="image/png" href="images/logo2.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+  </head>
+
+  <body class="auth-body">
+    <div class="auth-container">
+      <img src="images/logo2.png" class="auth-logo" />
+
+      <h1 class="auth-title">Welcome Back</h1>
+      <p class="auth-sub">Log in to continue</p>
+
+      <form id="loginForm" class="auth-form">
+        <input
+          id="loginEmail"
+          type="text"
+          placeholder="Email/Username"
+          required
+        />
+        <input
+          id="loginPassword"
+          type="password"
+          placeholder="Password"
+          required
+        />
+        <p class="forgot-link" id="forgotPasswordLink">Forgot your password?</p>
+
+        <button class="auth-btn" type="submit">Continue</button>
+      </form>
+
+      <p class="auth-switch">
+        Don’t have an account?
+        <a href="signup.html">Create one</a>
+      </p>
+
+      <p id="authError" class="auth-error hidden"></p>
+    </div>
+
+    <div id="resetPasswordModal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Reset Password</h3>
+      <p>Enter your email and we'll send you a reset link.</p>
+
+      <form id="loginForm" class="auth-form">
+        <input type="email" id="resetEmailInput" placeholder="Your email" required>
+
+        <div class="btn-row">
+      <button id="sendResetBtn" type="submit" class="primary-btn">Send Link</button>
+      <button id="closeResetModal" class="primary-btn">Cancel</button>
+      </div>
+      </form>
+
+    </div>
+  </div>
+  <div id="errorPopup" class="success-overlay hidden">
+      <div class="success-card">
+        <div class="success-icon error"><i class="fa-solid fa-xmark-circle"></i></div>
+        <div id="errorMessage" class="success-text"></div>
+      </div>
+    </div>
+
+    <script type="module" src="login.js"></script>
+  </body>
+</html>
