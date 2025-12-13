@@ -1034,7 +1034,7 @@ function initProfile(user) {
 }
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    window.location.href = '../login.html';
+    window.location.href = 'login.html';
     return;
   }
     initTheme();
