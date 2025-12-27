@@ -1074,6 +1074,14 @@ fab.onclick = () => {
   document.getElementById("challengeModalTitle").textContent = "Add Challenge";
   challengeIdInput.value = "";
   form.reset();
+  const today = new Date().toISOString().split("T")[0];
+   if (!startInput.value) {
+      startInput.value = today;
+    }
+
+    if (!endInput.value) {
+      endInput.value = today;
+    }
   modal.classList.remove("hidden");
 };
 
