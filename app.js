@@ -8,6 +8,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  setDoc,
   doc,
   serverTimestamp,
   query,
@@ -51,6 +52,8 @@ const state = {
   splitDays: [],
   workouts: [],
 };
+let challenges = [];
+let pendingDeleteId = null;
 
 /*******************************************************
  *  DOM SELECTORS
@@ -123,6 +126,29 @@ const newPasswordInput = document.getElementById("newPasswordInput");
 
 const errorPopup = document.getElementById("errorPopup");
 const errorMessage = document.getElementById("errorMessage");
+
+const challengeList = document.getElementById("challengeList");
+const emptyState = document.getElementById("challengeEmpty");
+const fab = document.getElementById("addFab");
+
+const modal = document.getElementById("challengeModal");
+const closeModal = document.getElementById("closeChallengeModal");
+const form = document.getElementById("challengeForm");
+
+const challengeIdInput = document.getElementById("challengeId");
+const titleInput = document.getElementById("challengeTitle");
+const startInput = document.getElementById("challengeStart");
+const endInput = document.getElementById("challengeEnd");
+
+const deletePopup = document.getElementById("deletePopup");
+const cancelDelete = document.getElementById("cancelDelete");
+const confirmDelete = document.getElementById("confirmDelete");
+
+const addChallengeItemModal = document.getElementById("addChallengeItemModal");
+const challengeItemInput = document.getElementById("challengeItemInput");
+const closeAddChallengeItemModal = document.getElementById("closeAddChallengeItemModal");
+const cancelAddChallengeItem = document.getElementById("cancelAddChallengeItem");
+const saveChallengeItem = document.getElementById("saveChallengeItem");
 
 /* ---------------------------
    DELETE MODAL ELEMENTS
@@ -207,6 +233,8 @@ function restoreSessionView() {
   const saved = sessionStorage.getItem("activeView");
   if (!saved) return;
 
+  if (saved === "challengeDetailView") return;
+
   views.forEach(v => {
     v.classList.toggle("active", v.id === saved);
   });
@@ -215,6 +243,7 @@ function restoreSessionView() {
     btn.classList.toggle("active", btn.dataset.view === saved);
   });
 }
+
 
 
 function formatDate(dateStr) {
@@ -892,6 +921,712 @@ function renderHome7DayChart() {
     }
   });
 }
+/*******************************************************
+ * Challenges
+ *******************************************************/
+const dayMs = 1000 * 60 * 60 * 24;
+
+function diffDays(a, b) {
+  return Math.round((b - a) / dayMs) + 1;
+}
+
+function statusText(start, end) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (today < start) return `In ${Math.ceil((start - today) / dayMs)} days`;
+  if (today > end) return "Past";
+  return "Current";
+}
+
+function formatDates(date) {
+  const d = new Date(date);
+  const day = d.toLocaleDateString("en-GB", { weekday: "short" });
+  const month = d.toLocaleDateString("en-GB", { month: "short" });
+  const num = d.getDate();
+
+  const suffix =
+    num % 10 === 1 && num !== 11 ? "st" :
+    num % 10 === 2 && num !== 12 ? "nd" :
+    num % 10 === 3 && num !== 13 ? "rd" : "th";
+
+  return `${day} ${num}${suffix} ${month}`;
+}
+
+/* =========================
+   RENDER
+========================= */
+
+function renderChallenges() {
+  challengeList.innerHTML = "";
+
+  if (!challenges.length) {
+    emptyState.classList.remove("hidden");
+    return;
+  }
+
+  emptyState.classList.add("hidden");
+
+  challenges.forEach(challenge => {
+    const start = new Date(challenge.start);
+    const end = new Date(challenge.end);
+    const totalDays = diffDays(start, end);
+
+    const card = document.createElement("div");
+    card.className = "card goal-card";
+
+    card.innerHTML = `
+      <div class="card-main">
+
+          <div class="challenge-card-text">
+            <p class="challenge-title">${challenge.title}</p>
+            <p class="challenge-subtitle">
+              ${formatDates(challenge.start)} – ${formatDates(challenge.end)} (${totalDays} days)
+            </p>
+            <span class="challenge-clock">
+              <i class="fa-solid fa-clock"></i>
+              ${statusText(start, end)}
+            </span>
+          </div>
+
+          <div class="challenge-card-actions">
+            <button class="challenge-menu-btn">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+
+            <div class="inline-actions hidden">
+              <button class="challenge-button-only edit-btn">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+              <button class="challenge-button-only danger delete-btn">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        
+      </div>
+    `;
+
+    card.querySelector(".challenge-card-text").onclick = async () => {
+      showPreloader();
+      await openChallengeDetail(challenge.id);
+      hidePreloader();
+    };
+
+
+    const menuBtn = card.querySelector(".challenge-menu-btn");
+    const inlineActions = card.querySelector(".inline-actions");
+    const editBtn = card.querySelector(".edit-btn");
+    const deleteBtn = card.querySelector(".delete-btn");
+
+    menuBtn.onclick = e => {
+      e.stopPropagation();
+      document.querySelectorAll(".inline-actions").forEach(a => {
+        if (a !== inlineActions) a.classList.add("hidden");
+      });
+      inlineActions.classList.toggle("hidden");
+    };
+
+    editBtn.onclick = e => {
+      e.stopPropagation();
+      inlineActions.classList.add("hidden");
+      openEditChallenge(challenge);
+    };
+
+    deleteBtn.onclick = e => {
+      e.stopPropagation();
+      inlineActions.classList.add("hidden");
+      pendingDeleteId = challenge.id;
+      deletePopup.classList.remove("hidden");
+    };
+
+    challengeList.appendChild(card);
+  });
+}
+
+/* =========================
+   LOAD
+========================= */
+
+async function loadChallenges() {
+  const snap = await getDocs(
+    collection(db, "users", auth.currentUser.uid, "challenges")
+  );
+
+  challenges = snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => {
+      return new Date(b.end) - new Date(a.end); // 🔥 descending by end date
+    });
+
+  renderChallenges();
+}
+
+
+
+/* =========================
+   MODALS
+========================= */
+
+fab.onclick = () => {
+  document.getElementById("challengeModalTitle").textContent = "Add Challenge";
+  challengeIdInput.value = "";
+  form.reset();
+  modal.classList.remove("hidden");
+};
+
+closeModal.onclick = () => modal.classList.add("hidden");
+
+function openEditChallenge(challenge) {
+  document.getElementById("challengeModalTitle").textContent = "Edit Challenge";
+  challengeIdInput.value = challenge.id;
+  titleInput.value = challenge.title;
+  startInput.value = challenge.start;
+  endInput.value = challenge.end;
+  modal.classList.remove("hidden");
+}
+
+/* =========================
+   DELETE POPUP
+========================= */
+
+cancelDelete.onclick = () => {
+  pendingDeleteId = null;
+  deletePopup.classList.add("hidden");
+};
+
+confirmDelete.onclick = async () => {
+  if (!pendingDeleteId) return;
+
+  await deleteDoc(
+    doc(db, "users", auth.currentUser.uid, "challenges", pendingDeleteId)
+  );
+
+  pendingDeleteId = null;
+  deletePopup.classList.add("hidden");
+  showSuccess("Challenge deleted");
+  loadChallenges();
+};
+
+/* =========================
+   SAVE Challenge
+========================= */
+
+form.onsubmit = async e => {
+  e.preventDefault();
+
+  const startDate = new Date(startInput.value);
+  const endDate = new Date(endInput.value);
+  startDate.setHours(0, 0, 0, 0);
+  endDate.setHours(0, 0, 0, 0);
+
+  if (endDate < startDate) {
+    showError("End date cannot be before start date");
+    return;
+  }
+
+
+  const data = {
+    title: titleInput.value.trim(),
+    start: startInput.value,
+    end: endInput.value,
+    createdAt: serverTimestamp()
+  };
+
+  if (challengeIdInput.value) {
+    await updateDoc(
+      doc(db, "users", auth.currentUser.uid, "challenges", challengeIdInput.value),
+      data
+    );
+    showSuccess("Challenge updated");
+  } else {
+    await addDoc(
+      collection(db, "users", auth.currentUser.uid, "challenges"),
+      data
+    );
+    showSuccess("Challenge added");
+  }
+
+  modal.classList.add("hidden");
+  loadChallenges();
+};
+
+let activeChallenge = null;
+let activeDay = null;
+let challengeEditMode = false;
+
+async function loadChallengeItems(challengeId) {
+  const snap = await getDocs(
+    collection(
+      db,
+      "users",
+      auth.currentUser.uid,
+      "challenges",
+      challengeId,
+      "items"
+    )
+  );
+
+  return snap.docs.map(d => ({
+    id: d.id,
+    ...d.data()
+  }));
+}
+async function loadDayProgress(challengeId, dayKey) {
+  const ref = doc(
+    db,
+    "users",
+    auth.currentUser.uid,
+    "challenges",
+    challengeId,
+    "days",
+    dayKey
+  );
+
+  const snap = await getDoc(ref);
+  return snap.exists() ? snap.data().completedItemIds || [] : [];
+}
+
+async function openChallengeDetail(challengeId) {
+  try {
+  sessionStorage.setItem("activeChallengeId", challengeId);
+  sessionStorage.setItem("activeView", "challengeDetailView");
+  activeChallenge = challenges.find(c => c.id === challengeId);
+  if (!activeChallenge) return;
+
+  document.getElementById("challengeDetailTitle").textContent =
+    activeChallenge.title;
+
+  generateChallengeDays();
+  const today = todayKey();
+
+if (activeChallenge.days.includes(today)) {
+  activeDay = today;
+} else if (today < activeChallenge.days[0]) {
+  activeDay = activeChallenge.days[0]; // not started yet
+} else {
+  activeDay = activeChallenge.days.at(-1); // challenge ended
+}
+
+activeChallenge.daysProgress = {};
+
+for (const day of activeChallenge.days) {
+  activeChallenge.daysProgress[day] =
+    await loadDayProgress(activeChallenge.id, day);
+}
+
+
+  activeChallenge.items = await loadChallengeItems(challengeId);
+  activeChallenge.completedToday =
+  await loadDayProgress(activeChallenge.id, activeDay);
+activeChallenge.daysProgress[activeDay] =
+  activeChallenge.completedToday;
+
+
+  sessionStorage.setItem("activeView", "challengeDetailView");
+  views.forEach(v =>
+    v.classList.toggle("active", v.id === "challengeDetailView")
+  );
+
+  renderChallengeDetail();
+  updateChallengeDayLabel(); 
+  requestAnimationFrame(scrollDayStripToActive);
+  } finally {
+    hidePreloader();
+  }
+}
+
+
+function generateChallengeDays() {
+  const start = new Date(activeChallenge.start);
+  const end = new Date(activeChallenge.end);
+  start.setHours(0,0,0,0);
+  end.setHours(0,0,0,0);
+
+  activeChallenge.days = [];
+  while (start <= end) {
+    activeChallenge.days.push(start.toISOString().slice(0,10));
+    start.setDate(start.getDate() + 1);
+  }
+}
+
+
+function renderChallengeDetail() {
+  renderDayStrip();
+  renderProgressRing();
+  renderChallengeItems();
+  const editBtn = document.getElementById("editChallengeItemsBtn");
+  editBtn.classList.toggle("active", challengeEditMode);
+
+}
+function scrollDayStripToActive() {
+  const strip = document.getElementById("challengeDayStrip");
+  const activeEl = strip.querySelector(".challenge-day.active");
+
+  if (!activeEl) return;
+
+  activeEl.scrollIntoView({
+    behavior: "smooth",
+    inline: "center",
+    block: "nearest"
+  });
+}
+
+function renderDayStrip() {
+  const strip = document.getElementById("challengeDayStrip");
+  strip.innerHTML = "";
+
+  const totalItems = activeChallenge.items.length;
+
+  activeChallenge.days.forEach((day, index) => {
+    const completed =
+  activeChallenge.daysProgress?.[day]?.length || 0;
+    const percent = totalItems ? completed / totalItems : 0;
+
+    const dash = 2 * Math.PI * 12;
+    const offset = dash - dash * percent;
+
+    const el = document.createElement("div");
+    el.className = "challenge-day";
+    el.dataset.day = day; 
+
+    if (day === todayKey()) el.classList.add("today");
+    if (day === activeDay) el.classList.add("active");
+
+    el.innerHTML = `
+      <svg class="challenge-day-ring" viewBox="0 0 28 28">
+        <circle cx="14" cy="14" r="12" class="day-ring-bg" />
+        <circle
+          cx="14"
+          cy="14"
+          r="12"
+          class="day-ring-progress"
+          stroke-dasharray="${dash}"
+          stroke-dashoffset="${offset}"
+        />
+      </svg>
+      <span class="challenge-day-number">${index + 1}</span>
+      <div class="challenge-day-dot"></div>
+    `;
+
+    el.onclick = async () => {
+      activeDay = day;
+
+      const progress =
+        await loadDayProgress(activeChallenge.id, activeDay);
+
+      activeChallenge.completedToday = progress;
+      activeChallenge.daysProgress[activeDay] = progress;
+
+      renderChallengeDetail();
+      updateChallengeDayLabel(); 
+    };
+
+
+    strip.appendChild(el);
+  });
+}
+
+
+
+function renderProgressRing() {
+  const total = activeChallenge.items.length;
+  const completed = activeChallenge.completedToday.length;
+
+  const percent = total ? completed / total : 0;
+  const circle = document.querySelector(".ring-progress");
+
+  circle.style.strokeDashoffset = 314 - percent * 314;
+
+  document.getElementById("challengeProgressText").textContent =
+    `${completed} of ${total} completed`;
+}
+
+function updateChallengeDayLabel() {
+  const index = activeChallenge.days.indexOf(activeDay);
+  if (index === -1) return;
+
+  document.getElementById("challengeDayLabel").textContent =
+    `Day ${index + 1}`;
+}
+
+async function renderChallengeItems() {
+  const list = document.getElementById("challengeItemList");
+  list.innerHTML = "";
+
+  for (const item of activeChallenge.items) {
+    const checked =
+      activeChallenge.completedToday?.includes(item.id);
+
+    const row = document.createElement("div");
+    row.className = "challenge-item";
+    if (challengeEditMode) row.classList.add("edit-mode");
+
+    row.innerHTML = `
+      <div class="challenge-item-left">
+        <input type="checkbox" ${checked ? "checked" : ""}>
+        <span class="challenge-item-text">${item.text}</span>
+      </div>
+
+      <button class="delete-item" data-id="${item.id}">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    `;
+
+
+    const checkbox = row.querySelector('input[type="checkbox"]');
+
+    checkbox.onchange = async () => {
+      if (!isToday(activeDay)) {
+        checkbox.checked = !checkbox.checked; // revert UI
+        showError("You can only complete tasks for today");
+        return;
+      }
+      await toggleItemCompletion(item.id, checkbox.checked);
+    };
+
+
+    list.appendChild(row);
+  }
+}
+async function toggleItemCompletion(itemId, checked) {
+  if (!isToday(activeDay)) {
+  showError("You can only complete today’s tasks");
+  return;
+}
+
+  const ref = doc(
+    db,
+    "users",
+    auth.currentUser.uid,
+    "challenges",
+    activeChallenge.id,
+    "days",
+    activeDay
+  );
+
+  const snap = await getDoc(ref);
+  const existing = snap.exists()
+    ? snap.data().completedItemIds || []
+    : [];
+
+  const updated = checked
+    ? [...new Set([...existing, itemId])]
+    : existing.filter(id => id !== itemId);
+
+  await setDoc(ref, {
+    completedItemIds: updated,
+    updatedAt: serverTimestamp()
+  });
+
+  activeChallenge.completedToday = updated;
+  activeChallenge.daysProgress[activeDay] = updated;
+
+  renderProgressRing();
+  renderDayStrip();
+  renderChallengeCalendar();
+  renderChallengeItems();
+}
+
+document.getElementById("challengeBackBtn").onclick = () => {
+  sessionStorage.removeItem("activeChallengeId");
+  sessionStorage.setItem("activeView", "ChallengeView");
+  views.forEach(v =>
+    v.classList.toggle("active", v.id === "ChallengeView")
+  );
+};
+
+const challengeCalendarModal =
+  document.getElementById("challengeCalendarModal");
+
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#challengeCalendarBtn")) {
+    openChallengeCalendar();
+  }
+
+  if (
+    e.target.closest("#closeChallengeCalendar") ||
+    e.target === challengeCalendarModal
+  ) {
+    challengeCalendarModal.classList.add("hidden");
+  }
+});
+function openChallengeCalendar() {
+  renderChallengeCalendar();
+  challengeCalendarModal.classList.remove("hidden");
+}
+function renderChallengeCalendar() {
+  const grid = document.getElementById("challengeCalendarGrid");
+  grid.innerHTML = "";
+
+  const totalItems = activeChallenge.items?.length || 0;
+
+  activeChallenge.days.forEach((day, index) => {
+    const completed =
+  activeChallenge.daysProgress?.[day]?.length || 0;
+    const percent = totalItems ? completed / totalItems : 0;
+
+    const dash = 2 * Math.PI * 14; // circumference
+    const offset = dash - dash * percent;
+
+    const cell = document.createElement("div");
+    cell.className = "challenge-calendar-day";
+    
+    if (day === todayKey()) cell.classList.add("today");
+    if (day === activeDay) cell.classList.add("active");
+
+    cell.innerHTML = `
+      <svg class="challenge-mini-ring" viewBox="0 0 36 36">
+        <circle
+          cx="18"
+          cy="18"
+          r="14"
+          class="challenge-mini-bg"
+        />
+        <circle
+          cx="18"
+          cy="18"
+          r="14"
+          class="challenge-mini-progress"
+          stroke-dasharray="${dash}"
+          stroke-dashoffset="${offset}"
+        />
+      </svg>
+      <span>${index + 1}</span>
+    `;
+
+   cell.onclick = async () => {
+  activeDay = day;
+
+  const progress =
+    await loadDayProgress(activeChallenge.id, activeDay);
+
+  activeChallenge.completedToday = progress;
+  activeChallenge.daysProgress[activeDay] = progress;
+
+  challengeCalendarModal.classList.add("hidden");
+  renderChallengeDetail();
+  updateChallengeDayLabel();
+  requestAnimationFrame(scrollDayStripToActive);
+};
+
+
+
+    grid.appendChild(cell);
+  });
+}
+
+function toggleChallengeEditMode() {
+  challengeEditMode = !challengeEditMode;
+  renderChallengeItems();
+}
+function openAddChallengeItemModal() {
+  challengeItemInput.value = "";
+  addChallengeItemModal.classList.remove("hidden");
+  setTimeout(() => challengeItemInput.focus(), 50);
+}
+closeAddChallengeItemModal.onclick = () =>
+  addChallengeItemModal.classList.add("hidden");
+
+cancelAddChallengeItem.onclick = () =>
+  addChallengeItemModal.classList.add("hidden");
+
+saveChallengeItem.onclick = async () => {
+  const text = challengeItemInput.value.trim();
+  if (!text || !activeChallenge) return;
+
+  await addDoc(
+    collection(
+      db,
+      "users",
+      auth.currentUser.uid,
+      "challenges",
+      activeChallenge.id,
+      "items"
+    ),
+    {
+      text,
+      createdAt: serverTimestamp()
+    }
+  );
+
+  addChallengeItemModal.classList.add("hidden");
+  showSuccess("Item added");
+
+  activeChallenge.items =
+    await loadChallengeItems(activeChallenge.id);
+
+  renderChallengeDetail();
+};
+
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest(".delete-item");
+  if (!btn || !challengeEditMode) return;
+
+  const itemId = btn.dataset.id;
+  const uid = auth.currentUser.uid;
+  const challengeId = activeChallenge.id;
+
+  /* 1️⃣ Delete item document */
+  await deleteDoc(
+    doc(
+      db,
+      "users",
+      uid,
+      "challenges",
+      challengeId,
+      "items",
+      itemId
+    )
+  );
+
+  /* 2️⃣ Remove itemId from ALL day completion docs */
+  const daysSnap = await getDocs(
+    collection(
+      db,
+      "users",
+      uid,
+      "challenges",
+      challengeId,
+      "days"
+    )
+  );
+
+  for (const dayDoc of daysSnap.docs) {
+    const data = dayDoc.data();
+    if (!data.completedItemIds?.includes(itemId)) continue;
+
+    await updateDoc(dayDoc.ref, {
+      completedItemIds: data.completedItemIds.filter(id => id !== itemId)
+    });
+  }
+
+  /* 3️⃣ Reload items + today progress */
+  activeChallenge.items = await loadChallengeItems(challengeId);
+  activeChallenge.completedToday =
+    await loadDayProgress(challengeId, activeDay);
+
+  renderChallengeDetail();
+});
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function isPastDay(day) {
+  return day < todayKey();
+}
+
+function isFutureDay(day) {
+  return day > todayKey();
+}
+
+function isToday(day) {
+  return day === todayKey();
+}
+
+
+
+
 
 /*******************************************************
  * HOME
@@ -1013,6 +1748,34 @@ confirmDeleteBtn.addEventListener("click", async () => {
   }
 });
 
+document.addEventListener("click", (e) => {
+
+  /* ===== ADD CHALLENGE ITEM ===== */
+  if (e.target.closest("#addChallengeItemBtn")) {
+    e.stopPropagation();
+    openAddChallengeItemModal();
+    return;
+  }
+
+  /* ===== TOGGLE EDIT MODE ===== */
+  if (e.target.closest("#editChallengeItemsBtn")) {
+    e.stopPropagation();
+    toggleChallengeEditMode();
+    return;
+  }
+
+});
+function showPreloader() {
+  document.body.classList.add("spa-preload");
+  document.getElementById("preloader").style.display = "flex";
+}
+
+function hidePreloader() {
+  document.body.classList.remove("spa-preload");
+  document.getElementById("preloader").style.display = "none";
+}
+
+
 function init() {
   workoutDateInput.value = new Date().toLocaleDateString("en-CA");
   workoutExercisesContainer.appendChild(createExerciseRow());
@@ -1039,6 +1802,16 @@ onAuthStateChanged(auth, async (user) => {
     init();
     initData();
     userDoc = await getDoc(doc(db, 'users', user.uid));
+    await loadChallenges();
+    const savedView = sessionStorage.getItem("activeView");
+    const savedChallengeId = sessionStorage.getItem("activeChallengeId");
+
+    if (savedView === "challengeDetailView" && savedChallengeId) {
+      showPreloader();
+      await openChallengeDetail(savedChallengeId);
+}
+
+
     initProfile(user)
     document.body.classList.remove("spa-preload");
     document.getElementById("preloader").style.display = "none";

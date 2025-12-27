@@ -243,6 +243,88 @@
       </div>
     </section>
 
+    
+    <section id="ChallengeView" class="view">
+      <h1>Challenges</h1>
+      <p class="subtitle">Keep track of past, current and upcoming challenges!</p>
+
+      <div class="challengelist">
+      <section id="challengeList" class="challenge-list"></section>
+
+      <p id="challengeEmpty" class="challenge-list-empty hidden">
+        No challenges yet. Tap the plus to add your first one
+      </p>
+      </div>
+
+      <button id="addFab" class="fab-add">
+    <i class="fa-solid fa-plus"></i>
+  </button>
+
+    </section>
+
+    <!-- ============ CHALLENGE DETAIL VIEW ============ -->
+<section id="challengeDetailView" class="view">
+
+  <!-- Header -->
+  <div class="challenge-detail-header">
+    <button id="challengeBackBtn" class="icon-button">
+      <i class="fa-solid fa-arrow-left"></i>
+    </button>
+    <h1 id="challengeDetailTitle">Challenge</h1>
+
+    <button id="challengeCalendarBtn" class="icon-button">
+      <i class="fa-solid fa-calendar"></i>
+    </button>
+  </div>
+
+  <!-- Day Progress Strip -->
+  <div id="challengeDayStrip" class="challenge-day-strip"></div>
+
+  <!-- Big Progress Ring -->
+  <div class="challenge-ring-wrapper">
+  <div class="challenge-ring-center">
+    <span id="challengeDayLabel">Day 1</span>
+  </div>
+
+  <svg class="challenge-ring" viewBox="0 0 120 120">
+    <circle cx="60" cy="60" r="50" class="ring-bg" />
+    <circle
+      cx="60"
+      cy="60"
+      r="50"
+      class="ring-progress"
+      stroke-dasharray="314"
+      stroke-dashoffset="314"
+    />
+  </svg>
+
+  <div class="ring-center-text">
+    <span id="challengeProgressText">0 of 0 completed</span>
+  </div>
+</div>
+
+
+  <!-- Challenge List -->
+  <div class="card challenge-list-card">
+    <div class="challenge-list-header">
+      <h2>Challenge List</h2>
+
+      <div class="challenge-list-actions">
+        <button id="editChallengeItemsBtn" class="icon-button">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button id="addChallengeItemBtn" class="icon-button">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </div>
+    </div>
+
+    <div id="challengeItemList" class="challenge-item-list"></div>
+  </div>
+
+</section>
+
+
     <section id="profileView" class="view">
       <h1>Personal Info</h1>
       <br>
@@ -303,6 +385,11 @@
     <button class="nav-btn" data-view="progressView">
       <i class="fa-solid fa-chart-column"></i>
       <span>Progress</span>
+    </button>
+
+    <button class="nav-btn" data-view="ChallengeView">
+      <i class="fa-solid fa-bullseye"></i>
+      <span>Challenge</span>
     </button>
   </nav>
 
@@ -370,6 +457,118 @@
     </div>
   </div>
 </div>
+
+<!-- ADD / EDIT CHALLENGE MODAL -->
+  <div id="challengeModal" class="modal-overlay hidden">
+    <div class="modal-card">
+
+      <div class="modal-header">
+        <h2 id="challengeModalTitle">Add Challenge</h2>
+        <button id="closeChallengeModal" class="modal-close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <form id="challengeForm" class="modal-body">
+        <input type="hidden" id="challengeId">
+
+        <label class="field-label">
+          Challenge name
+          <input id="challengeTitle" class="input" required>
+        </label>
+
+        <label class="field-label">
+          From
+          <input type="date" id="challengeStart" class="input" required>
+        </label>
+
+        <label class="field-label">
+          To
+          <input type="date" id="challengeEnd" class="input" required>
+        </label>
+
+
+        <div class="modal-footer">
+          <button type="button" id="deleteChallengeBtn" class="btn-outline hidden">
+            <i class="fa-solid fa-trash"></i> Delete
+          </button>
+
+          <button type="submit" class="btn-primary">
+            <i class="fa-solid fa-check"></i> Save
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+  <!--  CHALLENGE CALENDAR OVERLAY -->
+<div id="challengeCalendarModal" class="modal hidden">
+  <div class="modal-content challenge-calendar-modal">
+
+    <div class="modal-header">
+      <h2>Challenge Progress</h2>
+      <button id="closeChallengeCalendar" class="modal-close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div id="challengeCalendarGrid" class="challenge-calendar-grid">
+      <!-- mini progress circles injected here -->
+    </div>
+
+  </div>
+</div>
+<!-- ADD CHALLENGE ITEM MODAL -->
+<div id="addChallengeItemModal" class="modal hidden">
+  <div class="modal-content">
+
+    <div class="modal-header">
+      <h2>Add Challenge Item</h2>
+      <button id="closeAddChallengeItemModal" class="modal-close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <label class="field-label">
+        Item name
+        <input
+          id="challengeItemInput"
+          class="input"
+          type="text"
+          placeholder="e.g. Drink 2L water"
+        />
+      </label>
+    </div>
+
+    <div class="modal-actions">
+      <button
+        id="cancelAddChallengeItem"
+        class="secondary-btn"
+      >
+        Cancel
+      </button>
+
+      <button
+        id="saveChallengeItem"
+        class="primary-btn"
+      >
+        Add
+      </button>
+    </div>
+
+  </div>
+</div>
+   <!-- DELETE POPUP -->
+  <div id="deletePopup" class="popup-overlay hidden">
+    <div class="popup-card">
+      <p class="popup-text">Delete this Challenge?</p>
+      <div class="popup-buttons">
+        <button id="cancelDelete" class="popup-btn cancel-btn">Cancel</button>
+        <button id="confirmDelete" class="popup-btn delete-btn">Delete</button>
+      </div>
+    </div>
+  </div>
 
     <!-- ERROR / SUCCESS POPUP -->
     <div id="errorPopup" class="success-overlay hidden">
