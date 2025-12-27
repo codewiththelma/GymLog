@@ -54,6 +54,8 @@ const state = {
 };
 let challenges = [];
 let pendingDeleteId = null;
+const MIN_PAST_PROGRESS = 0.01;
+
 
 /*******************************************************
  *  DOM SELECTORS
@@ -1281,8 +1283,13 @@ function renderDayStrip() {
   activeChallenge.days.forEach((day, index) => {
     const completed =
   activeChallenge.daysProgress?.[day]?.length || 0;
-    const percent = totalItems ? completed / totalItems : 0;
-
+    let percent = totalItems ? completed / totalItems : 0;
+    if (
+      percent === 0 &&
+      isPastDay(day)
+    ) {
+      percent = MIN_PAST_PROGRESS;
+    }
     const dash = 2 * Math.PI * 12;
     const offset = dash - dash * percent;
 
@@ -1333,7 +1340,13 @@ function renderProgressRing() {
   const total = activeChallenge.items.length;
   const completed = activeChallenge.completedToday.length;
 
-  const percent = total ? completed / total : 0;
+  let percent = total ? completed / total : 0;
+  if (
+      percent === 0 &&
+      isPastDay(day)
+    ) {
+      percent = MIN_PAST_PROGRESS;
+    }
   const circle = document.querySelector(".ring-progress");
 
   circle.style.strokeDashoffset = 314 - percent * 314;
@@ -1464,7 +1477,13 @@ function renderChallengeCalendar() {
   activeChallenge.days.forEach((day, index) => {
     const completed =
   activeChallenge.daysProgress?.[day]?.length || 0;
-    const percent = totalItems ? completed / totalItems : 0;
+    let percent = totalItems ? completed / totalItems : 0;
+    if (
+      percent === 0 &&
+      isPastDay(day)
+    ) {
+      percent = MIN_PAST_PROGRESS;
+    }
 
     const dash = 2 * Math.PI * 14; // circumference
     const offset = dash - dash * percent;

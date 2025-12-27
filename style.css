@@ -1770,3 +1770,27 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
+input,
+input[type="date"] {
+  box-sizing: border-box;
+}
+input[type="date"] {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+}
+.input-with-icon {
+  position: relative;
+}
+
+.input-with-icon i {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.input-with-icon input {
+  width: 100%;
+  padding-right: 42px; /* space for icon */
+}
