@@ -719,6 +719,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     padding-bottom: 2.5rem;
     padding-top: 1rem;
   }
+  body{
+    padding-bottom: 2.5rem;
+  }
 }
 @media (min-width: 900px) {
 
