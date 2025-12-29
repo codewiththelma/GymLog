@@ -265,7 +265,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
   padding: 0.9rem;
-  min-width: 170px;
+  width: 175px;
   transition: background 0.25s ease, border 0.25s ease;
 }
 
