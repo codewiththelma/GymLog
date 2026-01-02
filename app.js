@@ -1351,7 +1351,7 @@ function renderProgressRing() {
   let percent = total ? completed / total : 0;
   if (
       percent === 0 &&
-      isPastDay(day)
+      isPastDay(activeDay)
     ) {
       percent = MIN_PAST_PROGRESS;
     }
