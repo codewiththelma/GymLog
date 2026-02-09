@@ -652,10 +652,10 @@ function renderStreakCalendar() {
 
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
-  const startDay = first.getDay();
+  const startDay = (first.getDay() + 6) % 7; // Monday = 0
   const total = last.getDate();
 
-  ["S","M","T","W","T","F","S"].forEach((d) => {
+  ["M","T","W","T","F","S","S"].forEach((d) => {
     const el = document.createElement("div");
     el.className = "calendar-day-name";
     el.textContent = d;
@@ -806,9 +806,8 @@ async function renderHomeSummary() {
   homeStreakFill.style.width = `${Math.min(streak, 7) / 7 * 100}%`;
 
   const now = new Date();
-  const dow = now.getDay();
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - dow);
+  const weekStart = getStartOfWeek();
+
 
   const workoutDates = new Set(state.workouts.map((w) => w.date));
 
@@ -827,12 +826,14 @@ async function renderHomeSummary() {
 
 function getStartOfWeek() {
   const now = new Date();
-  const day = now.getDay(); // 0 = Sunday
-  const sunday = new Date(now);
-  sunday.setDate(now.getDate() - day);
-  sunday.setHours(0, 0, 0, 0);
-  return sunday;
+  const day = now.getDay(); // 0 = Sun, 1 = Mon, ...
+  const diff = day === 0 ? -6 : 1 - day; // ISO Monday
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diff);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
 }
+
 
 function getEndOfWeek(startOfWeek) {
   const end = new Date(startOfWeek);
