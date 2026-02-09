@@ -218,7 +218,7 @@ function initTheme() {
  * NAVIGATION
  *******************************************************/
 navBtns.forEach((btn) => {
-  btn.addEventListener("click", () => {
+  btn.addEventListener("click", async () => {
     const view = btn.dataset.view;
     sessionStorage.setItem("activeView", view);
 
@@ -228,8 +228,14 @@ navBtns.forEach((btn) => {
     views.forEach((v) => {
       v.classList.toggle("active", v.id === view);
     });
+
+    // 🔥 FORCE HOME REFRESH
+    if (view === "homeView") {
+      renderHome();
+    }
   });
 });
+
 
 function restoreSessionView() {
   const saved = sessionStorage.getItem("activeView");
@@ -842,6 +848,13 @@ function getEndOfWeek(startOfWeek) {
   return end;
 }
 
+function getCurrentChallenge() {
+  const today = todayKey();
+
+  return challenges.find(c => {
+    return c.start <= today && c.end >= today;
+  }) || null;
+}
 
 
 async function fetchWeeklyWorkouts() {
@@ -1045,6 +1058,103 @@ function renderChallenges() {
 
     challengeList.appendChild(card);
   });
+}
+
+async function renderHomeChallengeCard() {
+  const card = document.getElementById("homeChallengeCard");
+  const list = document.getElementById("homeChallengeItemList");
+  const title = document.getElementById("homeChallengeTitle");
+
+  const challenge = getCurrentChallenge();
+
+  if (!challenge) {
+    card.classList.add("hidden");
+    return;
+  }
+
+  card.classList.remove("hidden");
+  title.textContent = challenge.title;
+
+  const items = await loadChallengeItems(challenge.id);
+  const completedToday =
+    await loadDayProgress(challenge.id, todayKey());
+
+  list.innerHTML = "";
+
+  items.forEach(item => {
+    const checked = completedToday.includes(item.id);
+
+    const row = document.createElement("div");
+    row.className = "challenge-item";
+
+    row.innerHTML = `
+      <div class="challenge-item-left">
+        <input type="checkbox" ${checked ? "checked" : ""}>
+        <span class="challenge-item-text">${item.text}</span>
+      </div>
+    `;
+
+    const checkbox = row.querySelector("input");
+
+    checkbox.onchange = async () => {
+      await toggleHomeChallengeItem(
+        challenge.id,
+        item.id,
+        checkbox.checked
+      );
+    };
+
+    list.appendChild(row);
+  });
+
+  document.getElementById("openChallengeFromHome").onclick = async () => {
+    showPreloader();
+    await openChallengeDetail(challenge.id);
+    hidePreloader();
+  };
+}
+
+async function toggleHomeChallengeItem(challengeId, itemId, checked) {
+  const dayKey = todayKey();
+
+  const ref = doc(
+    db,
+    "users",
+    auth.currentUser.uid,
+    "challenges",
+    challengeId,
+    "days",
+    dayKey
+  );
+
+  const snap = await getDoc(ref);
+  const existing = snap.exists()
+    ? snap.data().completedItemIds || []
+    : [];
+
+  const updated = checked
+    ? [...new Set([...existing, itemId])]
+    : existing.filter(id => id !== itemId);
+
+  await setDoc(ref, {
+    completedItemIds: updated,
+    updatedAt: serverTimestamp()
+  });
+
+  // 🔥 Keep in-memory challenge data in sync
+  const challenge = challenges.find(c => c.id === challengeId);
+  if (challenge) {
+    challenge.daysProgress ??= {};
+    challenge.daysProgress[dayKey] = updated;
+  }
+
+  renderHomeChallengeCard();
+
+  // If challenge detail is open, update it too
+  if (activeChallenge?.id === challengeId) {
+    activeChallenge.completedToday = updated;
+    renderChallengeDetail();
+  }
 }
 
 /* =========================
@@ -1663,6 +1773,7 @@ function renderHome() {
   renderHomeSummary();
   renderHomeSplitPreview();
   renderHome7DayChart();
+  renderHomeChallengeCard();
 }
 
 /*******************************************************
@@ -1831,6 +1942,7 @@ onAuthStateChanged(auth, async (user) => {
     initData();
     userDoc = await getDoc(doc(db, 'users', user.uid));
     await loadChallenges();
+    renderHomeChallengeCard();
     const savedView = sessionStorage.getItem("activeView");
     const savedChallengeId = sessionStorage.getItem("activeChallengeId");
 
