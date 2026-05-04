@@ -984,8 +984,8 @@ function renderChallenges() {
   emptyState.classList.add("hidden");
 
   challenges.forEach(challenge => {
-    const start = new Date(challenge.start);
-    const end = new Date(challenge.end);
+    const start = new Date(challenge.start + "T00:00:00");
+const end = new Date(challenge.end + "T00:00:00");
     const totalDays = diffDays(start, end);
 
     const card = document.createElement("div");
@@ -1175,7 +1175,13 @@ async function loadChallenges() {
   renderChallenges();
 }
 
-
+function getLocalDateInputValue() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 /* =========================
    MODALS
@@ -1185,14 +1191,17 @@ fab.onclick = () => {
   document.getElementById("challengeModalTitle").textContent = "Add Challenge";
   challengeIdInput.value = "";
   form.reset();
-  const today = new Date().toISOString().split("T")[0];
-   if (!startInput.value) {
-      startInput.value = today;
-    }
 
-    if (!endInput.value) {
-      endInput.value = today;
-    }
+  const today = getLocalDateInputValue();
+
+  if (!startInput.value) {
+    startInput.value = today;
+  }
+
+  if (!endInput.value) {
+    endInput.value = today;
+  }
+
   modal.classList.remove("hidden");
 };
 
@@ -1359,15 +1368,21 @@ activeChallenge.daysProgress[activeDay] =
 
 
 function generateChallengeDays() {
-  const start = new Date(activeChallenge.start);
-  const end = new Date(activeChallenge.end);
-  start.setHours(0,0,0,0);
-  end.setHours(0,0,0,0);
+  const start = new Date(activeChallenge.start + "T00:00:00");
+  const end = new Date(activeChallenge.end + "T00:00:00");
 
   activeChallenge.days = [];
-  while (start <= end) {
-    activeChallenge.days.push(start.toISOString().slice(0,10));
-    start.setDate(start.getDate() + 1);
+
+  let current = new Date(start);
+
+  while (current <= end) {
+    const year = current.getFullYear();
+    const month = String(current.getMonth() + 1).padStart(2, "0");
+    const day = String(current.getDate()).padStart(2, "0");
+
+    activeChallenge.days.push(`${year}-${month}-${day}`);
+
+    current.setDate(current.getDate() + 1);
   }
 }
 
@@ -1747,7 +1762,11 @@ document.addEventListener("click", async (e) => {
   renderChallengeDetail();
 });
 function todayKey() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function isPastDay(day) {
